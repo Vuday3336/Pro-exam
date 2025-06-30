@@ -252,6 +252,9 @@ frontend:
       - working: true
         agent: "main"
         comment: "Successfully completed global replacement of 'EMCET' with 'EAMCET' across all 24 instances found in: backend/server.py, frontend/package.json, frontend/src/pages/Dashboard.js, Landing.js, Profile.js, Register.js, QuickExamSetup.js. All references now correctly use 'EAMCET' branding."
+      - working: true
+        agent: "testing"
+        comment: "Verified that EAMCET terminology is working correctly in the backend. Successfully created exams with both 'EAMCET Engineering' and 'EAMCET Medical' exam types. The exam creation endpoint correctly handles these exam types and generates appropriate questions."
 
   - task: "Google OAuth Authentication Fix"
     implemented: true
