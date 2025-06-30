@@ -40,8 +40,8 @@ const Dashboard = () => {
   const examTypeColors = {
     'JEE Main': 'from-blue-400 to-blue-600',
     'NEET': 'from-green-400 to-green-600',
-    'EMCET Engineering': 'from-purple-400 to-purple-600',
-    'EMCET Medical': 'from-orange-400 to-orange-600'
+    'EAMCET Engineering': 'from-purple-400 to-purple-600',
+    'EAMCET Medical': 'from-orange-400 to-orange-600'
   };
 
   if (loading) {
