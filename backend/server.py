@@ -287,30 +287,53 @@ async def generate_questions_chunk(subject: str, count: int, exam_config: ExamCo
         for attempt in range(max_retries):
             try:
                 prompt = f"""
-                Generate exactly {chunk_count} {exam_config.difficulty}-level MCQ questions for {subject}.
-                Exam Type: {exam_config.exam_type}
-                
-                IMPORTANT REQUIREMENTS:
-                - Generate EXACTLY {chunk_count} questions, no more, no less
-                - Each question must have exactly 4 options (A, B, C, D)
+                You are an expert question writer for {exam_config.exam_type} competitive exams. Generate exactly {chunk_count} high-quality, original MCQ questions for {subject} at {exam_config.difficulty} difficulty level.
+
+                CRITICAL REQUIREMENTS:
+                - Generate REAL, SPECIFIC, DETAILED questions (NOT sample/template questions)
+                - NO generic phrases like "Sample question", "Question 1", "Option A for question 1"
+                - Each question must be a complete, standalone academic question
+                - Questions should test actual {subject} concepts relevant to {exam_config.exam_type}
+                - Include specific numerical values, formulas, concepts, or scenarios where appropriate
+                - Each question must have exactly 4 distinct, meaningful options
                 - Only one correct answer per question
-                - Include detailed solution explanation
-                - Questions should be unique and {exam_config.exam_type}-appropriate
-                - Difficulty should match {exam_config.difficulty} level
-                - Cover various topics within {subject}
-                
+                - Include detailed solution with step-by-step explanation
+                - Cover different topics within {subject}
+                - Maintain {exam_config.difficulty} difficulty level throughout
+
+                QUESTION QUALITY STANDARDS:
+                - Questions should be exam-level quality, not basic or template-like
+                - Options should be plausible and test understanding
+                - Avoid obvious wrong answers
+                - Include relevant diagrams descriptions if needed
+                - Solutions should be educational and complete
+
+                FORBIDDEN CONTENT:
+                - NO "Sample [subject] question" phrasing
+                - NO "Option A for question X" format
+                - NO placeholder or template text
+                - NO generic question stems
+
+                Example of GOOD question format:
+                "A uniform rod of length 2m and mass 5kg is pivoted at its center. If a force of 10N is applied at one end perpendicular to the rod, what is the angular acceleration?"
+
+                Example of BAD question format (NEVER use):
+                "Sample Physics question 1 for NEET"
+
+                Generate exactly {chunk_count} questions following these standards.
+
                 Output ONLY valid JSON in this EXACT format (no extra text):
                 {{
                     "questions": [
                         {{
-                            "question": "Question text here",
-                            "options": ["Option A", "Option B", "Option C", "Option D"],
+                            "question": "Complete specific question text with actual content",
+                            "options": ["Specific option 1", "Specific option 2", "Specific option 3", "Specific option 4"],
                             "correct_index": 0,
                             "correct_answer": "A",
-                            "solution": "Detailed solution explanation",
+                            "solution": "Detailed step-by-step solution explanation",
                             "difficulty": "{exam_config.difficulty}",
                             "subject": "{subject}",
-                            "topic": "Topic name",
+                            "topic": "Specific topic name",
                             "exam_type": "{exam_config.exam_type}"
                         }}
                     ]
