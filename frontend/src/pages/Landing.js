@@ -40,22 +40,22 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation */}
-      <nav className="container mx-auto px-6 py-4">
+      <nav className="container mx-auto px-4 sm:px-6 py-4">
         <div className="flex justify-between items-center">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="text-2xl font-bold text-white"
+            className="text-xl sm:text-2xl font-bold text-white"
           >
             ExamAce Pro
           </motion.div>
-          <div className="space-x-4">
-            <Link to="/login" className="text-white hover:text-blue-400 transition-colors">
+          <div className="flex space-x-2 sm:space-x-4">
+            <Link to="/login" className="text-white hover:text-blue-400 transition-colors text-sm sm:text-base">
               Login
             </Link>
             <Link 
               to="/register" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
             >
               Get Started
             </Link>
