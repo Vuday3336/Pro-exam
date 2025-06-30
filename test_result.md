@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "JEE/NEET/EMCET Exam Practice Portal - Complete Development. Build a comprehensive exam portal with AI-powered question generation, Google OAuth authentication, modern UI, and comprehensive analytics."
+user_problem_statement: "JEE/NEET/EAMCET Exam Practice Portal - Complete Development. Build a comprehensive exam portal with AI-powered question generation, Google OAuth authentication, modern UI, and comprehensive analytics."
 
 backend:
   - task: "FastAPI Backend with AI Integration"
