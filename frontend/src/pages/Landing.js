@@ -148,20 +148,20 @@ const Landing = () => {
       </div>
 
       {/* Exam Types Section */}
-      <div className="container mx-auto px-6 py-20">
+      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+          className="text-center mb-12 sm:mb-16"
         >
-          <h2 className="text-4xl font-bold text-white mb-4">Supported Examinations</h2>
-          <p className="text-gray-300 text-lg">
+          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4">Supported Examinations</h2>
+          <p className="text-gray-300 text-base sm:text-lg px-4">
             Complete preparation for all major competitive exams
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {[
             {
               name: "JEE Main",
