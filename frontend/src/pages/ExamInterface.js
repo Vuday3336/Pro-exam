@@ -28,6 +28,7 @@ const ExamInterface = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [examStarted, setExamStarted] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showMobileQuestionPalette, setShowMobileQuestionPalette] = useState(false);
 
   // Load exam data
   useEffect(() => {
