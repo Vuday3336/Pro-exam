@@ -527,7 +527,7 @@ async def generate_questions_with_gemini(exam_config: ExamConfig) -> List[Questi
 # API Endpoints
 
 @api_router.post("/auth/register")
-async def register_user(user_data: UserRegistration):
+async def register_user(user_data: UserRegistration, request: Request):
     """Register a new user"""
     # Check if user already exists
     existing_user = await db.users.find_one({"email": user_data.email})
@@ -552,10 +552,17 @@ async def register_user(user_data: UserRegistration):
     
     await db.users.insert_one(user_dict)
     
-    # Generate JWT token
-    token = create_jwt_token(user.id, user.email)
+    # Generate session ID and get device info
+    session_id = str(uuid.uuid4())
+    device_info = get_device_info(request)
     
-    return {"message": "User registered successfully", "token": token, "user": user}
+    # Manage user sessions (limit to 1 active session)
+    await manage_user_sessions(user.id, session_id, device_info, max_sessions=1)
+    
+    # Generate JWT token with session ID
+    token = create_jwt_token(user.id, user.email, session_id)
+    
+    return {"message": "User registered successfully", "token": token, "user": user.dict()}
 
 @api_router.post("/auth/login")
 async def login_user(login_data: UserLogin, request: Request):
