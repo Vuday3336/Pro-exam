@@ -426,42 +426,43 @@ const ExamInterface = () => {
         </AnimatePresence>
 
         {/* Action Buttons */}
-        <div className="flex justify-between items-center">
-          <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 sm:gap-0">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
             <button
               onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
               disabled={currentQuestionIndex === 0}
-              className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Previous</span>
             </button>
 
             <button
               onClick={() => handleMarkForReview(currentQuestionIndex)}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all ${
+              className={`flex items-center justify-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all text-sm sm:text-base w-full sm:w-auto ${
                 markedForReview.has(currentQuestionIndex)
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
               }`}
             >
-              <Flag className="w-5 h-5" />
-              <span>{markedForReview.has(currentQuestionIndex) ? 'Unmark' : 'Mark for Review'}</span>
+              <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">{markedForReview.has(currentQuestionIndex) ? 'Unmark' : 'Mark for Review'}</span>
+              <span className="sm:hidden">{markedForReview.has(currentQuestionIndex) ? 'Unmark' : 'Mark'}</span>
             </button>
           </div>
 
-          <div className="flex space-x-4">
+          <div className="w-full sm:w-auto">
             <button
               onClick={() => setCurrentQuestionIndex(Math.min(currentExam.questions.length - 1, currentQuestionIndex + 1))}
               disabled={currentQuestionIndex === currentExam.questions.length - 1}
-              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
             >
               <span>Next</span>
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
-      </div>
+        </div>
 
       {/* Submit Confirmation Modal */}
       <AnimatePresence>
