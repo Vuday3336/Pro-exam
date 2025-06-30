@@ -280,7 +280,7 @@ frontend:
     file: "/app/frontend/src/pages/ExamInterface.js, /app/frontend/src/pages/QuickExamSetup.js, /app/frontend/src/pages/Landing.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
@@ -291,6 +291,21 @@ frontend:
       - working: true
         agent: "testing"
         comment: "Verified mobile responsiveness improvements across the application. Landing page buttons no longer overlap on mobile with proper flex-col sm:flex-row layout. Text sizing is responsive with text-3xl sm:text-5xl md:text-7xl classes. Question number buttons in the exam interface are properly sized (w-12 h-12 on mobile) for better visibility. Subject selection tick marks in QuickExamSetup have the correct responsive sizing. All pages display correctly on mobile, tablet, and desktop viewports."
+      - working: true
+        agent: "main"
+        comment: "Added additional mobile improvements: 1) Fixed navbar spacing in landing page with proper items-center and whitespace-nowrap classes, 2) Added collapsible question palette for mobile exam interface with dropdown toggle, 3) Auto-close mobile question palette after question selection for better UX, 4) Improved toast notification settings with dismissible: true and better duration control."
+
+  - task: "Device Session Management"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Implemented comprehensive device session management: 1) Added session tracking to User model with active_sessions field, 2) Created session management functions including device info extraction, session validation, and automatic logout from previous devices, 3) Updated all authentication endpoints (login, register, Google OAuth) to use session management with max 1 active session limit, 4) Added JWT tokens with session IDs, 5) Added session management API endpoints for viewing active sessions and logging out from other devices."
 
   - task: "PDF Download Functionality"
     implemented: true
