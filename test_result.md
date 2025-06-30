@@ -332,8 +332,7 @@ test_plan:
   current_focus:
     - "Mobile Responsiveness Optimization"
     - "PDF Download Functionality"
-  stuck_tasks:
-    - "Authentication Pages"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
