@@ -350,7 +350,6 @@ test_plan:
   current_focus:
     - "Mobile Responsiveness Optimization"
     - "PDF Download Functionality"
-    - "Device Session Management"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
