@@ -320,7 +320,12 @@ const QuickExamSetup = () => {
                   {examLoading ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>Generating AI Questions...</span>
+                      <span>
+                        {questionCount >= 75 ? 'Generating (1-2 min)...' :
+                         questionCount >= 50 ? 'Generating (30-60s)...' :
+                         questionCount >= 20 ? 'Generating (15-30s)...' :
+                         'Generating AI Questions...'}
+                      </span>
                     </>
                   ) : (
                     <>
@@ -338,6 +343,11 @@ const QuickExamSetup = () => {
                     </p>
                     <p className="text-gray-500 text-xs mt-1">
                       AI will generate unique questions that never repeat
+                      {questionCount >= 50 && (
+                        <span className="block text-yellow-400 mt-1">
+                          ⏱️ Large question sets take longer for quality content
+                        </span>
+                      )}
                     </p>
                   </div>
                 )}
