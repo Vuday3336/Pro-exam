@@ -406,51 +406,120 @@ async def generate_questions_chunk(subject: str, count: int, exam_config: ExamCo
                 if len(chunk_questions) != chunk_count:
                     logger.warning(f"Expected {chunk_count} questions, got {len(chunk_questions)} for {subject} chunk {i+1}")
                 
-                # Convert to Question objects with validation
+                # Convert to Question objects with enhanced validation
+                valid_questions_in_chunk = 0
                 for q_data in chunk_questions:
                     try:
-                        question_text = q_data["question"].strip()
+                        question_text = q_data.get("question", "").strip()
+                        options = q_data.get("options", [])
+                        solution = q_data.get("solution", "").strip()
                         
-                        # Validate question quality - reject sample/template questions
+                        # Enhanced validation - reject sample/template questions
                         forbidden_phrases = [
                             "sample", "Sample", "SAMPLE",
-                            "question 1", "Question 1", "QUESTION 1",
+                            "question 1", "Question 1", "QUESTION 1", 
+                            "question 2", "Question 2", "QUESTION 2",
                             "option a for", "Option A for", "OPTION A FOR",
+                            "option b for", "Option B for", "OPTION B FOR", 
+                            "option c for", "Option C for", "OPTION C FOR",
+                            "option d for", "Option D for", "OPTION D FOR",
                             "placeholder", "Placeholder", "PLACEHOLDER",
                             "example question", "Example Question", "EXAMPLE QUESTION",
-                            "template", "Template", "TEMPLATE"
+                            "template", "Template", "TEMPLATE",
+                            "sample physics", "Sample Physics", "SAMPLE PHYSICS",
+                            "sample chemistry", "Sample Chemistry", "SAMPLE CHEMISTRY",
+                            "sample mathematics", "Sample Mathematics", "SAMPLE MATHEMATICS",
+                            "sample biology", "Sample Biology", "SAMPLE BIOLOGY",
+                            "for neet", "For NEET", "FOR NEET",
+                            "for jee", "For JEE", "FOR JEE",
+                            "for eamcet", "For EAMCET", "FOR EAMCET"
                         ]
                         
                         is_valid_question = True
+                        rejection_reason = ""
+                        
+                        # Check for forbidden phrases in question
                         for phrase in forbidden_phrases:
                             if phrase.lower() in question_text.lower():
-                                logger.warning(f"Rejected sample/template question: {question_text[:100]}...")
+                                logger.warning(f"Rejected question with forbidden phrase '{phrase}': {question_text[:100]}...")
                                 is_valid_question = False
+                                rejection_reason = f"Contains forbidden phrase: {phrase}"
                                 break
                         
+                        # Check for forbidden phrases in options
+                        if is_valid_question:
+                            for i, option in enumerate(options):
+                                option_text = str(option).strip()
+                                for phrase in forbidden_phrases:
+                                    if phrase.lower() in option_text.lower():
+                                        logger.warning(f"Rejected question with forbidden phrase in option {i+1}: {option_text}")
+                                        is_valid_question = False
+                                        rejection_reason = f"Option contains forbidden phrase: {phrase}"
+                                        break
+                                if not is_valid_question:
+                                    break
+                        
                         # Additional validation: check if question is too generic
-                        if len(question_text.split()) < 8:  # Questions should have meaningful content
+                        if is_valid_question and len(question_text.split()) < 10:  # Increased minimum words
                             logger.warning(f"Rejected too short question: {question_text}")
                             is_valid_question = False
+                            rejection_reason = "Question too short/generic"
+                        
+                        # Check if options are meaningful
+                        if is_valid_question and len(options) != 4:
+                            is_valid_question = False
+                            rejection_reason = "Invalid number of options"
+                        
+                        # Check for generic option patterns
+                        if is_valid_question:
+                            for i, option in enumerate(options):
+                                option_text = str(option).strip()
+                                if f"Option {chr(65+i)}" in option_text or f"option {chr(97+i)}" in option_text:
+                                    is_valid_question = False
+                                    rejection_reason = f"Generic option pattern detected: {option_text}"
+                                    break
+                                if len(option_text.split()) < 2:  # Options should have meaningful content
+                                    is_valid_question = False
+                                    rejection_reason = f"Option too short: {option_text}"
+                                    break
+                        
+                        # Check solution quality
+                        if is_valid_question and len(solution.split()) < 5:
+                            is_valid_question = False
+                            rejection_reason = "Solution too short/generic"
                         
                         if not is_valid_question:
+                            logger.warning(f"Question rejected: {rejection_reason}")
                             continue
                             
+                        # If we reach here, the question passed all validation
                         question = Question(
                             question=question_text,
-                            options=q_data["options"],
+                            options=options,
                             correct_index=int(q_data["correct_index"]),
                             correct_answer=q_data["correct_answer"],
-                            solution=q_data["solution"],
+                            solution=solution,
                             difficulty=q_data["difficulty"],
                             subject=q_data["subject"],
                             topic=q_data.get("topic", "General"),
                             exam_type=q_data["exam_type"]
                         )
                         all_questions.append(question)
+                        valid_questions_in_chunk += 1
+                        logger.info(f"Accepted valid question: {question_text[:100]}...")
+                        
                     except Exception as e:
                         logger.error(f"Error parsing question: {str(e)}")
                         continue
+                
+                logger.info(f"Generated {valid_questions_in_chunk} valid questions out of {len(chunk_questions)} total in chunk {i+1}")
+                
+                # If we didn't get any valid questions from this chunk, fail the attempt
+                if valid_questions_in_chunk == 0:
+                    logger.error(f"No valid questions generated in chunk {i+1}, attempt {attempt+1}")
+                    if attempt == max_retries - 1:
+                        raise Exception(f"Failed to generate valid questions for {subject} after {max_retries} attempts")
+                    continue
                 
                 logger.info(f"Successfully generated {len(chunk_questions)} questions for {subject} chunk {i+1}")
                 break  # Success, break retry loop
