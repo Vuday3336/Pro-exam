@@ -581,7 +581,7 @@ async def login_user(login_data: UserLogin, request: Request):
     return {"message": "Login successful", "token": token, "user": user_obj.dict()}
 
 @api_router.post("/auth/google")
-async def google_auth(google_data: GoogleAuth):
+async def google_auth(google_data: GoogleAuth, request: Request):
     """Authenticate with Google OAuth"""
     try:
         # Verify Google token
@@ -600,11 +600,6 @@ async def google_auth(google_data: GoogleAuth):
         user = await db.users.find_one({"email": email})
         
         if user:
-            # Update existing user
-            await db.users.update_one(
-                {"id": user["id"]},
-                {"$set": {"last_login": datetime.utcnow(), "google_id": google_id}}
-            )
             user_obj = User(**user)
         else:
             # Create new user
@@ -616,8 +611,15 @@ async def google_auth(google_data: GoogleAuth):
             )
             await db.users.insert_one(user_obj.dict())
         
-        # Generate JWT token
-        token = create_jwt_token(user_obj.id, user_obj.email)
+        # Generate session ID and get device info
+        session_id = str(uuid.uuid4())
+        device_info = get_device_info(request)
+        
+        # Manage user sessions (limit to 1 active session)
+        await manage_user_sessions(user_obj.id, session_id, device_info, max_sessions=1)
+        
+        # Generate JWT token with session ID
+        token = create_jwt_token(user_obj.id, user_obj.email, session_id)
         
         return {"message": "Google authentication successful", "token": token, "user": user_obj.dict()}
         
