@@ -193,16 +193,16 @@ const Landing = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6 hover:bg-white/20 transition-all"
+              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 sm:p-6 hover:bg-white/20 transition-all"
             >
-              <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${exam.color} flex items-center justify-center mb-4`}>
-                <BookOpen className="w-6 h-6 text-white" />
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-r ${exam.color} flex items-center justify-center mb-3 sm:mb-4`}>
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">{exam.name}</h3>
-              <p className="text-gray-300 text-sm mb-3">{exam.pattern}</p>
+              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">{exam.name}</h3>
+              <p className="text-gray-300 text-xs sm:text-sm mb-3">{exam.pattern}</p>
               <div className="space-y-1">
                 {exam.subjects.map((subject, idx) => (
-                  <div key={idx} className="text-sm text-gray-400">• {subject}</div>
+                  <div key={idx} className="text-xs sm:text-sm text-gray-400">• {subject}</div>
                 ))}
               </div>
             </motion.div>
