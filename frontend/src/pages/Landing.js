@@ -28,7 +28,7 @@ const Landing = () => {
     {
       icon: <BookOpen className="w-8 h-8" />,
       title: "Exam-Specific Patterns",
-      description: "Questions tailored to exact patterns of JEE, NEET, and EMCET exams"
+      description: "Questions tailored to exact patterns of JEE, NEET, and EAMCET exams"
     },
     {
       icon: <Users className="w-8 h-8" />,
