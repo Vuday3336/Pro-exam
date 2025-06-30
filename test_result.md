@@ -305,7 +305,6 @@ test_plan:
   current_focus:
     - "Mobile Responsiveness Optimization"
     - "PDF Download Functionality"
-    - "Backend Dashboard Fix"
   stuck_tasks:
     - "Authentication Pages"
   test_all: false
