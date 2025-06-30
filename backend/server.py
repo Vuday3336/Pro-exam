@@ -225,10 +225,14 @@ async def manage_user_sessions(user_id: str, session_id: str, device_info: dict,
     # Get current sessions
     active_sessions = user.get("active_sessions", [])
     
-    # Remove old sessions if we're at the limit
-    if len(active_sessions) >= max_sessions:
-        # Keep only the most recent sessions (remove oldest)
-        active_sessions = active_sessions[-(max_sessions-1):]
+    # For single session limit (max_sessions=1), clear all previous sessions
+    if max_sessions == 1:
+        active_sessions = []  # Clear all existing sessions
+    else:
+        # For multiple sessions, remove old ones if we're at the limit
+        if len(active_sessions) >= max_sessions:
+            # Keep only the most recent sessions (remove oldest)
+            active_sessions = active_sessions[-(max_sessions-1):]
     
     # Add new session
     new_session = {
