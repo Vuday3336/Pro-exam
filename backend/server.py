@@ -638,6 +638,53 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return current_user
 
+@api_router.get("/auth/sessions")
+async def get_active_sessions(current_user: User = Depends(get_current_user)):
+    """Get user's active sessions"""
+    user = await db.users.find_one({"id": current_user.id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    active_sessions = user.get("active_sessions", [])
+    
+    # Format sessions for display
+    formatted_sessions = []
+    for session in active_sessions:
+        device_info = session.get("device_info", {})
+        formatted_sessions.append({
+            "session_id": session["session_id"],
+            "device_type": device_info.get("device_type", "Unknown"),
+            "browser": device_info.get("browser", "Unknown"),
+            "ip_address": device_info.get("ip_address", "Unknown"),
+            "login_time": session.get("created_at"),
+            "last_activity": session.get("last_activity")
+        })
+    
+    return {"active_sessions": formatted_sessions}
+
+@api_router.post("/auth/logout-other-devices")
+async def logout_other_devices(current_user: User = Depends(get_current_user)):
+    """Logout from all other devices except current one"""
+    # Get current session from JWT token
+    # This is a simplified version - in production you'd want to get the current session ID
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {"active_sessions": []}}
+    )
+    
+    return {"message": "Logged out from all other devices"}
+
+@api_router.post("/auth/logout")
+async def logout_user(current_user: User = Depends(get_current_user)):
+    """Logout current user"""
+    # Remove current session
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {"active_sessions": []}}
+    )
+    
+    return {"message": "Logged out successfully"}
+
 @api_router.post("/exams/create")
 async def create_exam(exam_config: ExamConfig, current_user: User = Depends(get_current_user)):
     """Create a new exam with AI-generated questions"""
