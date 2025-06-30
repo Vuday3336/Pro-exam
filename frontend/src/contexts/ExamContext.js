@@ -41,7 +41,10 @@ export const ExamProvider = ({ children }) => {
       const exam = response.data.exam;
       
       setCurrentExam(exam);
-      toast.success(`Exam created with ${exam.questions.length} questions!`, { id: 'exam-creation' });
+      toast.success(`Exam created with ${exam.questions.length} questions!`, { 
+        id: 'exam-creation',
+        duration: 2000 
+      });
       
       return { success: true, exam };
     } catch (error) {
