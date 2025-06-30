@@ -125,11 +125,14 @@ export const ExamProvider = ({ children }) => {
         setCurrentExam({ ...currentExam, status: 'completed' });
       }
       
-      toast.success('Exam submitted successfully!', { id: 'exam-submission' });
+      toast.success('Exam submitted successfully!', { 
+        id: 'exam-submission',
+        duration: 2000 
+      });
       return { success: true, result };
     } catch (error) {
       const message = error.response?.data?.detail || 'Failed to submit exam';
-      toast.error(message, { id: 'exam-submission' });
+      toast.error(message, { id: 'exam-submission', duration: 2000 });
       return { success: false, error: message };
     } finally {
       setExamLoading(false);
