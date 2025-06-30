@@ -49,63 +49,65 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <ExamProvider>
-        <Router>
-          <div className="App">
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#1e293b',
-                  color: '#f8fafc',
-                  border: '1px solid #334155',
-                },
-              }}
-            />
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              } />
-              <Route path="/register" element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              } />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/quick-exam" element={
-                <ProtectedRoute>
-                  <QuickExamSetup />
-                </ProtectedRoute>
-              } />
-              <Route path="/exam/:examId" element={
-                <ProtectedRoute>
-                  <ExamInterface />
-                </ProtectedRoute>
-              } />
-              <Route path="/results/:examId" element={
-                <ProtectedRoute>
-                  <ExamResults />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </div>
-        </Router>
-      </ExamProvider>
-    </AuthProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthProvider>
+        <ExamProvider>
+          <Router>
+            <div className="App">
+              <Toaster 
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#1e293b',
+                    color: '#f8fafc',
+                    border: '1px solid #334155',
+                  },
+                }}
+              />
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                } />
+                <Route path="/register" element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                } />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/quick-exam" element={
+                  <ProtectedRoute>
+                    <QuickExamSetup />
+                  </ProtectedRoute>
+                } />
+                <Route path="/exam/:examId" element={
+                  <ProtectedRoute>
+                    <ExamInterface />
+                  </ProtectedRoute>
+                } />
+                <Route path="/results/:examId" element={
+                  <ProtectedRoute>
+                    <ExamResults />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </div>
+          </Router>
+        </ExamProvider>
+      </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }
 
