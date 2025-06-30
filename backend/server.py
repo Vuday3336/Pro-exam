@@ -40,7 +40,39 @@ db = client[os.environ['DB_NAME']]
 
 # Gemini AI Configuration
 genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-model = genai.GenerativeModel("gemini-2.0-flash")
+
+# Configure the model with better settings for reliability
+generation_config = genai.types.GenerationConfig(
+    temperature=0.7,
+    top_p=0.8,
+    top_k=40,
+    max_output_tokens=8192,
+)
+
+safety_settings = [
+    {
+        "category": "HARM_CATEGORY_HARASSMENT",
+        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+    {
+        "category": "HARM_CATEGORY_HATE_SPEECH",
+        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+    {
+        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+    {
+        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    }
+]
+
+model = genai.GenerativeModel(
+    "gemini-2.0-flash",
+    generation_config=generation_config,
+    safety_settings=safety_settings
+)
 
 # JWT Configuration
 JWT_SECRET = os.environ['JWT_SECRET_KEY']
