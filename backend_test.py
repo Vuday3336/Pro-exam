@@ -435,11 +435,19 @@ def test_exam_creation(exam_type="JEE Main", subjects=None):
     """Test exam creation endpoint requiring authentication"""
     print(f"Testing Exam Creation Endpoint for {exam_type}...")
     try:
-        # Ensure we have a token
-        global token
-        if not token:
-            print("❌ No authentication token available. Login test must pass first.")
+        # Login again to get a fresh token
+        login_data = {
+            "email": TEST_USER["email"],
+            "password": TEST_USER["password"]
+        }
+        
+        login_response = requests.post(f"{API_URL}/auth/login", json=login_data)
+        if login_response.status_code != 200:
+            print(f"❌ Login failed with status code {login_response.status_code}")
             return False
+        
+        # Get the token from the login response
+        token = login_response.json()["token"]
         
         if subjects is None:
             if exam_type == "JEE Main":
