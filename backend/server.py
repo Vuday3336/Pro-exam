@@ -704,32 +704,47 @@ async def get_exam_result(exam_id: str, current_user: User = Depends(get_current
 async def get_dashboard(current_user: User = Depends(get_current_user)):
     """Get user dashboard data"""
     # Get user's exams
-    exams = await db.exams.find({"user_id": current_user.id}).to_list(length=100)
+    exams_cursor = db.exams.find({"user_id": current_user.id})
+    exams = await exams_cursor.to_list(length=100)
     
     # Get user's results
-    results = await db.results.find({"user_id": current_user.id}).to_list(length=100)
+    results_cursor = db.results.find({"user_id": current_user.id})
+    results = await results_cursor.to_list(length=100)
+    
+    # Clean up MongoDB documents (remove _id fields)
+    clean_exams = []
+    for exam in exams:
+        if '_id' in exam:
+            del exam['_id']
+        clean_exams.append(exam)
+    
+    clean_results = []
+    for result in results:
+        if '_id' in result:
+            del result['_id']
+        clean_results.append(result)
     
     # Calculate statistics
-    total_exams = len(exams)
-    completed_exams = len([e for e in exams if e["status"] == "completed"])
+    total_exams = len(clean_exams)
+    completed_exams = len([e for e in clean_exams if e["status"] == "completed"])
     
-    if results:
-        avg_score = sum(r["percentage"] for r in results) / len(results)
-        best_score = max(r["percentage"] for r in results)
+    if clean_results:
+        avg_score = sum(r["percentage"] for r in clean_results) / len(clean_results)
+        best_score = max(r["percentage"] for r in clean_results)
     else:
         avg_score = 0
         best_score = 0
     
     return {
-        "user": current_user,
+        "user": current_user.dict(),
         "stats": {
             "total_exams": total_exams,
             "completed_exams": completed_exams,
             "average_score": round(avg_score, 2),
             "best_score": round(best_score, 2)
         },
-        "recent_exams": exams[-5:] if exams else [],
-        "recent_results": results[-5:] if results else []
+        "recent_exams": clean_exams[-5:] if clean_exams else [],
+        "recent_results": clean_results[-5:] if clean_results else []
     }
 
 @api_router.get("/")
