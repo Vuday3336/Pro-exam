@@ -92,6 +92,7 @@ class User(BaseModel):
     google_id: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
+    active_sessions: List[dict] = Field(default_factory=list)  # Track active sessions with device info
 
 class UserRegistration(BaseModel):
     email: EmailStr
