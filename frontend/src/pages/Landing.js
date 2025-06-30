@@ -111,35 +111,35 @@ const Landing = () => {
       </div>
 
       {/* Features Section */}
-      <div className="container mx-auto px-6 py-20">
+      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+          className="text-center mb-12 sm:mb-16"
         >
-          <h2 className="text-4xl font-bold text-white mb-4">Why Choose ExamAce Pro?</h2>
-          <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4">Why Choose ExamAce Pro?</h2>
+          <p className="text-gray-300 text-base sm:text-lg max-w-2xl mx-auto px-4">
             Experience the most advanced exam preparation platform designed specifically for Indian competitive exams
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {features.map((feature, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6 hover:bg-white/20 transition-all"
+              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 sm:p-6 hover:bg-white/20 transition-all"
             >
-              <div className="text-blue-400 mb-4">
+              <div className="text-blue-400 mb-3 sm:mb-4">
                 {feature.icon}
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
                 {feature.title}
               </h3>
-              <p className="text-gray-300">
+              <p className="text-gray-300 text-sm sm:text-base">
                 {feature.description}
               </p>
             </motion.div>
