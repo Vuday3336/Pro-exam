@@ -176,7 +176,7 @@ const Landing = () => {
               pattern: "180 Questions • 3 Hours"
             },
             {
-              name: "EMCET Engineering",
+              name: "EAMCET Engineering",
               subjects: ["Physics", "Chemistry", "Mathematics"],
               color: "from-purple-500 to-pink-500",
               pattern: "160 Questions • 3 Hours"
