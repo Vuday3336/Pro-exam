@@ -155,9 +155,9 @@ def test_dashboard():
         print(f"❌ Dashboard Endpoint Test: FAILED - {str(e)}")
         return False
 
-def test_exam_creation():
+def test_exam_creation(exam_type="JEE Main", subjects=None):
     """Test exam creation endpoint requiring authentication"""
-    print("Testing Exam Creation Endpoint...")
+    print(f"Testing Exam Creation Endpoint for {exam_type}...")
     try:
         # Ensure we have a token
         global token
@@ -165,9 +165,21 @@ def test_exam_creation():
             print("❌ No authentication token available. Login test must pass first.")
             return False
         
+        if subjects is None:
+            if exam_type == "JEE Main":
+                subjects = ["Physics", "Chemistry", "Mathematics"]
+            elif exam_type == "NEET":
+                subjects = ["Physics", "Chemistry", "Biology"]
+            elif exam_type == "EAMCET Engineering":
+                subjects = ["Physics", "Chemistry", "Mathematics"]
+            elif exam_type == "EAMCET Medical":
+                subjects = ["Physics", "Chemistry", "Biology"]
+            else:
+                subjects = ["Physics", "Chemistry", "Mathematics"]
+        
         exam_config = {
-            "exam_type": "JEE Main",
-            "subjects": ["Physics", "Chemistry", "Mathematics"],
+            "exam_type": exam_type,
+            "subjects": subjects,
             "question_count": 6,  # Small number for quick testing
             "duration": 30,  # 30 minutes
             "difficulty": "Medium"
@@ -192,11 +204,12 @@ def test_exam_creation():
         assert response.status_code == 200, "Exam creation failed"
         assert "exam" in response_json, "Response missing 'exam' field"
         assert "questions" in response_json["exam"], "Response missing 'questions' field"
+        assert response_json["exam"]["exam_type"] == exam_type, f"Exam type mismatch: expected {exam_type}"
         
-        print("✅ Exam Creation Test: PASSED")
+        print(f"✅ Exam Creation Test for {exam_type}: PASSED")
         return True
     except Exception as e:
-        print(f"❌ Exam Creation Test: FAILED - {str(e)}")
+        print(f"❌ Exam Creation Test for {exam_type}: FAILED - {str(e)}")
         return False
 
 def run_all_tests():
