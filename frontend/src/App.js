@@ -57,7 +57,7 @@ function App() {
               <Toaster 
                 position="top-right"
                 toastOptions={{
-                  duration: 3000,  // 3 seconds as requested
+                  duration: 2000,  // 2 seconds as requested
                   dismissible: true,
                   style: {
                     background: '#1e293b',
@@ -65,14 +65,14 @@ function App() {
                     border: '1px solid #334155',
                   },
                   success: {
-                    duration: 3000,  // 3 seconds for success messages
+                    duration: 2000,  // 2 seconds for success messages
                     iconTheme: {
                       primary: '#22c55e',
                       secondary: '#ffffff',
                     },
                   },
                   error: {
-                    duration: 3000,  // 3 seconds for error messages too
+                    duration: 2000,  // 2 seconds for error messages
                     iconTheme: {
                       primary: '#ef4444',
                       secondary: '#ffffff',
