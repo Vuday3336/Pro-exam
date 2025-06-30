@@ -84,7 +84,7 @@ const Landing = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto"
           >
-            Revolutionary AI-powered practice portal for JEE Main, NEET, EMCET Engineering & Medical. 
+            Revolutionary AI-powered practice portal for JEE Main, NEET, EAMCET Engineering & Medical. 
             Experience the future of exam preparation with dynamic questions that never repeat.
           </motion.p>
           
