@@ -300,12 +300,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "EMCET to EAMCET Global Replacement"
-    - "Google OAuth Authentication Fix"
-    - "Authentication Pages"
+    - "Mobile Responsiveness Optimization"
+    - "PDF Download Functionality"
+    - "Backend Dashboard Fix"
   stuck_tasks:
     - "Authentication Pages"
-    - "Google OAuth Authentication Fix"
   test_all: false
   test_priority: "high_first"
 
