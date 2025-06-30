@@ -160,7 +160,7 @@ backend:
     status_history:
       - working: false
         agent: "main"
-        comment: "Gemini Pro integration with fallback mechanisms, exam-specific question generation for JEE/NEET/EMCET, retry logic implemented."
+        comment: "Gemini Pro integration with fallback mechanisms, exam-specific question generation for JEE/NEET/EAMCET, retry logic implemented."
       - working: true
         agent: "testing"
         comment: "AI Question Generation is working correctly. Exam creation endpoint successfully generates questions using Gemini Pro API. Questions are properly formatted with options, correct answers, and solutions."
