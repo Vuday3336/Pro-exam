@@ -558,7 +558,7 @@ async def register_user(user_data: UserRegistration):
     return {"message": "User registered successfully", "token": token, "user": user}
 
 @api_router.post("/auth/login")
-async def login_user(login_data: UserLogin):
+async def login_user(login_data: UserLogin, request: Request):
     """Login user with email and password"""
     user = await db.users.find_one({"email": login_data.email})
     if not user:
@@ -567,17 +567,18 @@ async def login_user(login_data: UserLogin):
     if not verify_password(login_data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    # Update last login
-    await db.users.update_one(
-        {"id": user["id"]},
-        {"$set": {"last_login": datetime.utcnow()}}
-    )
+    # Generate session ID and get device info
+    session_id = str(uuid.uuid4())
+    device_info = get_device_info(request)
     
-    # Generate JWT token
-    token = create_jwt_token(user["id"], user["email"])
+    # Manage user sessions (limit to 1 active session)
+    await manage_user_sessions(user["id"], session_id, device_info, max_sessions=1)
+    
+    # Generate JWT token with session ID
+    token = create_jwt_token(user["id"], user["email"], session_id)
     
     user_obj = User(**user)
-    return {"message": "Login successful", "token": token, "user": user_obj}
+    return {"message": "Login successful", "token": token, "user": user_obj.dict()}
 
 @api_router.post("/auth/google")
 async def google_auth(google_data: GoogleAuth):
