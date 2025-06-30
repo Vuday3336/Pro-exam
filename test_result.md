@@ -284,3 +284,5 @@ agent_communication:
     message: "Complete JEE/NEET/EMCET exam portal implemented with AI question generation, authentication, modern UI. Backend had Google module import issue but seems resolved after restart. Frontend authentication not working according to user. Need to test backend API endpoints first, then frontend authentication flow."
   - agent: "testing"
     message: "Completed backend API testing. All backend endpoints are working correctly including health check, user registration, login, protected endpoints, dashboard, and exam creation with AI question generation. Created backend_test.py script that successfully tests all required endpoints. Backend is fully functional and ready for frontend integration."
+  - agent: "main"
+    message: "Starting Phase 1 of user's confirmed plan: 1) Complete EMCET → EAMCET global replacement (found 24 instances across backend and frontend), 2) Fix Google OAuth authentication. User confirmed plan to implement professional question palette like NTA interface and enhance exam features. Will update EMCET to EAMCET first, then fix Google OAuth, then proceed to UI enhancements."
