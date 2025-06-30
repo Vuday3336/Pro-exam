@@ -211,22 +211,22 @@ const Landing = () => {
       </div>
 
       {/* CTA Section */}
-      <div className="container mx-auto px-6 py-20">
+      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-lg border border-white/20 rounded-2xl p-12 text-center"
+          className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-lg border border-white/20 rounded-2xl p-6 sm:p-12 text-center"
         >
-          <h2 className="text-4xl font-bold text-white mb-4">
+          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4">
             Ready to Ace Your Exams?
           </h2>
-          <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-gray-300 text-base sm:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
             Join thousands of students who have transformed their exam preparation with our AI-powered platform
           </p>
           <Link 
             to="/register" 
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all transform hover:scale-105 inline-block"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold transition-all transform hover:scale-105 inline-block"
           >
             Start Your Journey Now
           </Link>
@@ -234,9 +234,9 @@ const Landing = () => {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 py-8">
-        <div className="container mx-auto px-6 text-center text-gray-400">
-          <p>&copy; 2025 ExamAce Pro. All rights reserved. Built with ❤️ for student success.</p>
+      <footer className="border-t border-gray-800 py-6 sm:py-8">
+        <div className="container mx-auto px-4 sm:px-6 text-center text-gray-400">
+          <p className="text-sm sm:text-base">&copy; 2025 ExamAce Pro. All rights reserved. Built with ❤️ for student success.</p>
         </div>
       </footer>
     </div>
