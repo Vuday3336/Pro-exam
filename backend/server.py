@@ -358,7 +358,17 @@ async def generate_questions_chunk(subject: str, count: int, exam_config: ExamCo
                     timeout=90.0  # Increased timeout for better quality generation
                 )
                 
+                if not response or not response.text:
+                    logger.error("Empty response from Gemini API")
+                    continue
+                
                 response_text = response.text.strip()
+                logger.info(f"Raw response length: {len(response_text)}")
+                
+                # Check for API quota exceeded or other errors in response
+                if "quota" in response_text.lower() or "limit" in response_text.lower() or "exceeded" in response_text.lower():
+                    logger.error("API quota exceeded or rate limited")
+                    raise Exception("API quota exceeded - cannot generate quality questions")
                 
                 # Clean JSON response - be more aggressive in cleaning
                 if "```json" in response_text:
@@ -379,8 +389,18 @@ async def generate_questions_chunk(subject: str, count: int, exam_config: ExamCo
                     response_text = response_text[json_start:json_end]
                 
                 # Parse JSON
-                parsed_response = json.loads(response_text)
+                try:
+                    parsed_response = json.loads(response_text)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse JSON response: {str(e)}")
+                    logger.error(f"Response text: {response_text[:500]}...")
+                    continue
+                
                 chunk_questions = parsed_response.get("questions", [])
+                
+                if not chunk_questions:
+                    logger.error("No questions found in parsed response")
+                    continue
                 
                 # Validate we got the expected number of questions
                 if len(chunk_questions) != chunk_count:
