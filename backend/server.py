@@ -734,7 +734,7 @@ async def get_dashboard(current_user: User = Depends(get_current_user)):
 
 @api_router.get("/")
 async def root():
-    return {"message": "JEE/NEET/EMCET Exam Portal API"}
+    return {"message": "JEE/NEET/EAMCET Exam Portal API"}
 
 # Include router
 app.include_router(api_router)
