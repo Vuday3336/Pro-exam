@@ -319,18 +319,32 @@ def test_first_device_session_invalidated():
         response = requests.get(f"{API_URL}/auth/me", headers=headers)
         print(f"Status Code: {response.status_code}")
         
-        # The implementation might not be invalidating previous sessions
-        # This is not a critical failure, just note it
-        if response.status_code == 200:
-            print("Note: First device session is still valid. The implementation might not be invalidating previous sessions.")
-            print(f"Response: {response.json()}")
-            print("✅ First Device Session Invalidation Test: PASSED (with note)")
-            return True
-        elif response.status_code == 401:
+        # Check if the first device session is invalidated (should be with max_sessions=1)
+        if response.status_code == 401:
             print(f"Response: {response.json()}")
             assert "detail" in response.json(), "Response missing 'detail' field"
-            print("✅ First Device Session Invalidation Test: PASSED")
+            print("✅ First device session is correctly invalidated after second device login")
             return True
+        elif response.status_code == 200:
+            print("⚠️ First device session is still valid after second device login")
+            print(f"Response: {response.json()}")
+            
+            # Check active sessions to see how many are active
+            global token_device2
+            if token_device2:
+                headers_device2 = {"Authorization": f"Bearer {token_device2}"}
+                sessions_response = requests.get(f"{API_URL}/auth/sessions", headers=headers_device2)
+                if sessions_response.status_code == 200:
+                    active_sessions = sessions_response.json()["active_sessions"]
+                    print(f"Current active sessions count: {len(active_sessions)}")
+                    
+                    if len(active_sessions) > 1:
+                        print("⚠️ Multiple active sessions exist - session limit may not be working correctly")
+                    else:
+                        print("Note: Only one active session exists, but it's not the expected one")
+            
+            print("⚠️ First Device Session Invalidation Test: FAILED - Session should be invalidated with max_sessions=1")
+            return False
         else:
             print(f"Unexpected status code: {response.status_code}")
             print(f"Response: {response.json()}")
