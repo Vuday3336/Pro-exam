@@ -382,11 +382,38 @@ async def generate_questions_chunk(subject: str, count: int, exam_config: ExamCo
                 if len(chunk_questions) != chunk_count:
                     logger.warning(f"Expected {chunk_count} questions, got {len(chunk_questions)} for {subject} chunk {i+1}")
                 
-                # Convert to Question objects
+                # Convert to Question objects with validation
                 for q_data in chunk_questions:
                     try:
+                        question_text = q_data["question"].strip()
+                        
+                        # Validate question quality - reject sample/template questions
+                        forbidden_phrases = [
+                            "sample", "Sample", "SAMPLE",
+                            "question 1", "Question 1", "QUESTION 1",
+                            "option a for", "Option A for", "OPTION A FOR",
+                            "placeholder", "Placeholder", "PLACEHOLDER",
+                            "example question", "Example Question", "EXAMPLE QUESTION",
+                            "template", "Template", "TEMPLATE"
+                        ]
+                        
+                        is_valid_question = True
+                        for phrase in forbidden_phrases:
+                            if phrase.lower() in question_text.lower():
+                                logger.warning(f"Rejected sample/template question: {question_text[:100]}...")
+                                is_valid_question = False
+                                break
+                        
+                        # Additional validation: check if question is too generic
+                        if len(question_text.split()) < 8:  # Questions should have meaningful content
+                            logger.warning(f"Rejected too short question: {question_text}")
+                            is_valid_question = False
+                        
+                        if not is_valid_question:
+                            continue
+                            
                         question = Question(
-                            question=q_data["question"],
+                            question=question_text,
                             options=q_data["options"],
                             correct_index=int(q_data["correct_index"]),
                             correct_answer=q_data["correct_answer"],
