@@ -98,11 +98,11 @@ export const ExamProvider = ({ children }) => {
         setCurrentExam({ ...currentExam, status: 'ongoing', start_time: new Date() });
       }
       
-      toast.success('Exam started!');
+      toast.success('Exam started!', { duration: 2000 });
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.detail || 'Failed to start exam';
-      toast.error(message);
+      toast.error(message, { duration: 2000 });
       return { success: false, error: message };
     }
   };
