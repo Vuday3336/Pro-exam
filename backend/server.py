@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI
-app = FastAPI(title="JEE/NEET/EMCET Exam Portal API", version="1.0.0")
+app = FastAPI(title="JEE/NEET/EAMCET Exam Portal API", version="1.0.0")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
