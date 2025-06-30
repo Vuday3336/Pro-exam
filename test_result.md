@@ -270,10 +270,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "React Application Structure"
+    - "EMCET to EAMCET Global Replacement"
+    - "Google OAuth Authentication Fix"
     - "Authentication Pages"
   stuck_tasks:
     - "Authentication Pages"
+    - "Google OAuth Authentication Fix"
   test_all: false
   test_priority: "high_first"
 
