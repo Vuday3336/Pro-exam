@@ -80,8 +80,12 @@ def test_user_registration():
         assert "user" in response.json(), "Response missing 'user' field"
         
         # Store the token for subsequent requests
-        global token
+        global token, user_id
         token = response.json()["token"]
+        user_id = response.json()["user"]["id"]
+        
+        # Verify that the user has an active session
+        assert "active_sessions" in response.json()["user"], "User should have active_sessions field"
         
         print("✅ User Registration Test: PASSED")
         return True
@@ -107,8 +111,13 @@ def test_user_login():
         assert "user" in response.json(), "Response missing 'user' field"
         
         # Store the token for subsequent requests
-        global token
+        global token, user_id
         token = response.json()["token"]
+        user_id = response.json()["user"]["id"]
+        
+        # Verify that the user has an active session
+        assert "active_sessions" in response.json()["user"], "User should have active_sessions field"
+        assert len(response.json()["user"]["active_sessions"]) > 0, "User should have at least one active session"
         
         print("✅ User Login Test: PASSED")
         return True
