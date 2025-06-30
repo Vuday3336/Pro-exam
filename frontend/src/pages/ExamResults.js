@@ -193,6 +193,14 @@ const ExamResults = () => {
               <p className="text-gray-400">Detailed analysis of your performance</p>
             </div>
             <div className="flex space-x-4">
+              <button
+                onClick={downloadPDF}
+                disabled={downloadingPDF}
+                className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span>{downloadingPDF ? 'Generating...' : 'Download PDF'}</span>
+              </button>
               <Link 
                 to="/dashboard"
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
