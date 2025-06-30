@@ -540,7 +540,7 @@ async def google_auth(google_data: GoogleAuth):
         # Generate JWT token
         token = create_jwt_token(user_obj.id, user_obj.email)
         
-        return {"message": "Google authentication successful", "token": token, "user": user_obj}
+        return {"message": "Google authentication successful", "token": token, "user": user_obj.dict()}
         
     except ValueError as e:
         raise HTTPException(status_code=401, detail="Invalid Google token")
