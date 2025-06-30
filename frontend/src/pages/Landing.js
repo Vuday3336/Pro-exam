@@ -49,13 +49,16 @@ const Landing = () => {
           >
             ExamAce Pro
           </motion.div>
-          <div className="flex space-x-2 sm:space-x-4">
-            <Link to="/login" className="text-white hover:text-blue-400 transition-colors text-sm sm:text-base">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <Link 
+              to="/login" 
+              className="text-white hover:text-blue-400 transition-colors text-sm sm:text-base whitespace-nowrap"
+            >
               Login
             </Link>
             <Link 
               to="/register" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap"
             >
               Get Started
             </Link>
