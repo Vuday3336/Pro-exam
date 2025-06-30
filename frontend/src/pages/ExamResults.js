@@ -26,6 +26,8 @@ const ExamResults = () => {
   const { examResults, getExamResult, examLoading } = useExam();
   const [showSolutions, setShowSolutions] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const reportRef = useRef(null);
 
   useEffect(() => {
     if (examId) {
