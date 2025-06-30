@@ -56,31 +56,31 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation */}
       <nav className="border-b border-white/10 backdrop-blur-lg">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
+        <div className="container mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">ExamAce Pro</h1>
-                <p className="text-sm text-gray-400">Welcome back, {user?.full_name}</p>
+                <h1 className="text-lg sm:text-xl font-bold text-white">ExamAce Pro</h1>
+                <p className="text-xs sm:text-sm text-gray-400">Welcome back, {user?.full_name}</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto justify-end">
               <Link 
                 to="/profile" 
-                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors text-sm sm:text-base whitespace-nowrap"
               >
-                <User className="w-5 h-5" />
+                <User className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Profile</span>
               </Link>
               <button 
                 onClick={logout}
-                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors text-sm sm:text-base whitespace-nowrap"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Logout</span>
               </button>
             </div>
