@@ -5,6 +5,7 @@ import time
 import os
 from dotenv import load_dotenv
 import sys
+import uuid
 
 # Load environment variables from frontend/.env to get the backend URL
 load_dotenv('/app/frontend/.env')
@@ -29,8 +30,17 @@ TEST_USER = {
     "class_level": "12th"
 }
 
-# Store the JWT token
+# Test data for a second device
+TEST_USER_DEVICE2 = {
+    "full_name": "Test Student",
+    "email": "test@example.com", 
+    "password": "TestPassword123",
+}
+
+# Store the JWT tokens for different devices
 token = None
+token_device2 = None
+user_id = None
 
 def print_separator():
     print("\n" + "="*80 + "\n")
