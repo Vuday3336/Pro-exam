@@ -339,18 +339,38 @@ const ExamInterface = () => {
       </div>
 
       {/* Main Content Area (75% on desktop, full width on mobile) */}
-      <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
-        {/* Question Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-lg lg:text-xl font-semibold text-white">
-              Question {currentQuestionIndex + 1} of {currentExam.questions.length}
-            </h2>
-            <p className="text-gray-400 text-sm lg:text-base">
-              {currentQuestion.subject} • {currentQuestion.difficulty}
-            </p>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Sticky Timer and Submit Header */}
+        <div className="lg:hidden sticky top-0 z-10 bg-black/30 backdrop-blur-lg border-b border-white/20 p-3">
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
+              timeLeft < 300 ? 'bg-red-500/20 border-red-500' : 'bg-blue-500/20 border-blue-500'
+            } border`}>
+              <Clock className="w-5 h-5 text-white" />
+              <span className="text-white font-bold">{formatTime(timeLeft)}</span>
+            </div>
+            <button
+              onClick={() => setShowSubmitConfirm(true)}
+              className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg font-semibold transition-all text-sm"
+            >
+              Submit
+            </button>
           </div>
         </div>
+
+        {/* Question Content */}
+        <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+          {/* Question Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-lg lg:text-xl font-semibold text-white">
+                Question {currentQuestionIndex + 1} of {currentExam.questions.length}
+              </h2>
+              <p className="text-gray-400 text-sm lg:text-base">
+                {currentQuestion.subject} • {currentQuestion.difficulty}
+              </p>
+            </div>
+          </div>
 
         {/* Question Content */}
         <AnimatePresence mode="wait">
