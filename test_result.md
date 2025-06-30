@@ -312,6 +312,9 @@ frontend:
       - working: true
         agent: "testing"
         comment: "Session management functionality is working correctly. The implementation allows multiple active sessions rather than limiting to exactly one session, but this is a minor implementation detail. All session management endpoints (/auth/sessions, /auth/logout-other-devices, /auth/logout) are working properly. The logout endpoint successfully invalidates the current session, and the logout-other-devices endpoint clears all sessions. Device information is correctly captured and stored in the active_sessions field. JWT tokens include session IDs and are properly validated."
+      - working: true
+        agent: "testing"
+        comment: "Device Session Management is now working correctly. The fix to clear all existing sessions before adding a new one when max_sessions=1 is working as expected. Tests confirm that when logging in from a second device, the first device's session is properly invalidated, and only one active session exists after the second login. The session management endpoints (/auth/sessions, /auth/logout-other-devices, /auth/logout) are all functioning correctly."
 
   - task: "PDF Download Functionality"
     implemented: true
