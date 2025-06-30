@@ -49,7 +49,7 @@ export const ExamProvider = ({ children }) => {
       return { success: true, exam };
     } catch (error) {
       const message = error.response?.data?.detail || 'Failed to create exam';
-      toast.error(message, { id: 'exam-creation' });
+      toast.error(message, { id: 'exam-creation', duration: 2000 });
       return { success: false, error: message };
     } finally {
       setExamLoading(false);
