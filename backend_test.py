@@ -155,6 +155,32 @@ def test_dashboard():
         print(f"❌ Dashboard Endpoint Test: FAILED - {str(e)}")
         return False
 
+def test_google_oauth():
+    """Test Google OAuth endpoint with a mock token"""
+    print("Testing Google OAuth Endpoint...")
+    try:
+        # Create a mock Google token (this is not a real token)
+        mock_token = "mock_google_token_for_testing"
+        
+        # Send request to Google OAuth endpoint
+        response = requests.post(f"{API_URL}/auth/google", json={"token": mock_token})
+        print(f"Status Code: {response.status_code}")
+        
+        # We expect a 401 error since we're using a mock token
+        # This test is primarily to verify the endpoint structure is correct
+        print(f"Response: {response.json()}")
+        
+        # The endpoint should return a 401 error for invalid tokens
+        assert response.status_code == 401, "Expected 401 status code for invalid token"
+        assert "detail" in response.json(), "Response missing 'detail' field"
+        assert "Invalid Google token" in response.json()["detail"], "Unexpected error message"
+        
+        print("✅ Google OAuth Endpoint Test: PASSED (Endpoint structure is correct)")
+        return True
+    except Exception as e:
+        print(f"❌ Google OAuth Endpoint Test: FAILED - {str(e)}")
+        return False
+
 def test_exam_creation(exam_type="JEE Main", subjects=None):
     """Test exam creation endpoint requiring authentication"""
     print(f"Testing Exam Creation Endpoint for {exam_type}...")
