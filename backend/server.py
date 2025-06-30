@@ -522,8 +522,13 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 async def create_exam(exam_config: ExamConfig, current_user: User = Depends(get_current_user)):
     """Create a new exam with AI-generated questions"""
     try:
-        # Generate questions using AI
+        logger.info(f"Creating exam for user {current_user.id}: {exam_config.exam_type}, {exam_config.question_count} questions")
+        
+        # Generate questions using AI with robust error handling
         questions = await generate_questions_with_gemini(exam_config)
+        
+        if len(questions) < exam_config.question_count:
+            logger.warning(f"Generated {len(questions)} questions, requested {exam_config.question_count}")
         
         # Create exam
         exam = Exam(
@@ -536,11 +541,19 @@ async def create_exam(exam_config: ExamConfig, current_user: User = Depends(get_
         
         await db.exams.insert_one(exam.dict())
         
+        logger.info(f"Exam created successfully with {len(questions)} questions")
         return {"message": "Exam created successfully", "exam": exam}
         
     except Exception as e:
         logger.error(f"Error creating exam: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to create exam")
+        raise HTTPException(status_code=500, detail=f"Failed to create exam: {str(e)}")
+
+@api_router.get("/exams/generation-status/{exam_id}")
+async def get_generation_status(exam_id: str, current_user: User = Depends(get_current_user)):
+    """Get the status of exam question generation (for future use with async generation)"""
+    # This endpoint can be used for real-time progress tracking in the future
+    # For now, return that generation is complete
+    return {"status": "completed", "progress": 100}
 
 @api_router.get("/exams/{exam_id}")
 async def get_exam(exam_id: str, current_user: User = Depends(get_current_user)):
