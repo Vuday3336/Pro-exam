@@ -462,10 +462,10 @@ const ExamInterface = () => {
             </button>
           </div>
         </div>
+          </motion.div>
+        </AnimatePresence>
         </div>
-
-      {/* Submit Confirmation Modal */}
-      <AnimatePresence>
+      </div>
         {showSubmitConfirm && (
           <motion.div
             initial={{ opacity: 0 }}
