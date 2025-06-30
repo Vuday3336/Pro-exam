@@ -364,8 +364,8 @@ async def generate_questions_with_gemini(exam_config: ExamConfig) -> List[Questi
     subject_distribution = {
         "JEE Main": {"Physics": 25, "Chemistry": 25, "Mathematics": 25},
         "NEET": {"Physics": 45, "Chemistry": 45, "Biology": 90},
-        "EMCET Engineering": {"Physics": 40, "Chemistry": 40, "Mathematics": 80},
-        "EMCET Medical": {"Physics": 40, "Chemistry": 40, "Biology": 80}
+        "EAMCET Engineering": {"Physics": 40, "Chemistry": 40, "Mathematics": 80},
+        "EAMCET Medical": {"Physics": 40, "Chemistry": 40, "Biology": 80}
     }
     
     # Calculate questions per subject
