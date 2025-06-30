@@ -152,9 +152,9 @@ backend:
 
   - task: "AI Question Generation"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -164,6 +164,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "AI Question Generation is working correctly. Exam creation endpoint successfully generates questions using Gemini Pro API. Questions are properly formatted with options, correct answers, and solutions."
+      - working: false
+        agent: "testing"
+        comment: "AI Question Generation is NOT working correctly. The system is consistently generating sample/template questions like 'Sample Physics question 1 for NEET' instead of real questions. The issue is due to the Gemini API quota being exceeded (429 error: 'You exceeded your current quota, please check your plan and billing details'). The system is falling back to template questions, but these should be rejected by the validation logic. The validation logic in the code is not effectively preventing these template questions from being used."
 
 frontend:
   - task: "React Application Structure"
