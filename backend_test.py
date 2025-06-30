@@ -431,6 +431,62 @@ def test_logout_other_devices():
         print(f"❌ Logout Other Devices Test: FAILED - {str(e)}")
         return False
 
+def analyze_question_quality(questions):
+    """Analyze the quality of generated questions"""
+    print("\nAnalyzing Question Quality...")
+    
+    # Forbidden phrases that should not appear in questions
+    forbidden_phrases = [
+        "sample", "Sample", "SAMPLE",
+        "question 1", "Question 1", "QUESTION 1",
+        "option a for", "Option A for", "OPTION A FOR",
+        "placeholder", "Placeholder", "PLACEHOLDER",
+        "example question", "Example Question", "EXAMPLE QUESTION",
+        "template", "Template", "TEMPLATE"
+    ]
+    
+    quality_issues = []
+    sample_questions = []
+    
+    for i, question in enumerate(questions):
+        question_text = question["question"]
+        
+        # Check for forbidden phrases
+        for phrase in forbidden_phrases:
+            if phrase.lower() in question_text.lower():
+                quality_issues.append(f"Question {i+1} contains forbidden phrase: '{phrase}'")
+                sample_questions.append(question_text)
+                break
+        
+        # Check for minimum length (too short questions are likely generic)
+        if len(question_text.split()) < 8:
+            quality_issues.append(f"Question {i+1} is too short: '{question_text}'")
+        
+        # Check for generic options
+        for j, option in enumerate(question["options"]):
+            if f"Option {chr(65+j)}" in option or f"option {chr(97+j)}" in option:
+                quality_issues.append(f"Question {i+1} has generic option: '{option}'")
+    
+    # Print quality analysis
+    if quality_issues:
+        print(f"⚠️ Found {len(quality_issues)} quality issues:")
+        for issue in quality_issues[:5]:  # Show only first 5 issues to avoid overwhelming output
+            print(f"  - {issue}")
+        if len(quality_issues) > 5:
+            print(f"  - ... and {len(quality_issues) - 5} more issues")
+        
+        if sample_questions:
+            print("\nSample questions detected (should not exist):")
+            for q in sample_questions[:3]:  # Show only first 3 sample questions
+                print(f"  - {q}")
+            if len(sample_questions) > 3:
+                print(f"  - ... and {len(sample_questions) - 3} more sample questions")
+        
+        return False
+    else:
+        print("✅ No quality issues found. All questions meet quality standards.")
+        return True
+
 def test_exam_creation(exam_type="JEE Main", subjects=None):
     """Test exam creation endpoint requiring authentication"""
     print(f"Testing Exam Creation Endpoint for {exam_type}...")
@@ -479,16 +535,22 @@ def test_exam_creation(exam_type="JEE Main", subjects=None):
         if "exam" in response_json and "questions" in response_json["exam"]:
             question_count = len(response_json["exam"]["questions"])
             print(f"Received {question_count} questions in response")
+            
+            # Analyze question quality
+            questions_quality = analyze_question_quality(response_json["exam"]["questions"])
+            
             # Truncate the questions to show just the first one
             response_json["exam"]["questions"] = response_json["exam"]["questions"][:1]
             print(f"Response (truncated): {json.dumps(response_json, indent=2)}")
         else:
             print(f"Response: {response_json}")
+            questions_quality = False
         
         assert response.status_code == 200, "Exam creation failed"
         assert "exam" in response_json, "Response missing 'exam' field"
         assert "questions" in response_json["exam"], "Response missing 'questions' field"
         assert response_json["exam"]["exam_type"] == exam_type, f"Exam type mismatch: expected {exam_type}"
+        assert questions_quality, "Question quality check failed"
         
         print(f"✅ Exam Creation Test for {exam_type}: PASSED")
         return True
