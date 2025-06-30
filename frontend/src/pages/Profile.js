@@ -80,17 +80,17 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
       <div className="border-b border-white/10 backdrop-blur-lg">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center space-x-4">
+        <div className="container mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
             <Link 
               to="/dashboard"
               className="text-gray-400 hover:text-white transition-colors"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-white">Profile Settings</h1>
-              <p className="text-gray-400">Manage your account information</p>
+              <h1 className="text-lg sm:text-2xl font-bold text-white">Profile Settings</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Manage your account information</p>
             </div>
           </div>
         </div>
