@@ -626,7 +626,10 @@ async def generate_questions_with_gemini(exam_config: ExamConfig) -> List[Questi
     if len(all_questions) > total_questions:
         all_questions = all_questions[:total_questions]
     
-    logger.info(f"Final question count: {len(all_questions)} (requested: {total_questions})")
+    if len(all_questions) == 0:
+        raise Exception("Failed to generate any valid questions. Please check AI service availability and try again.")
+    
+    logger.info(f"Total valid questions generated: {len(all_questions)} out of requested {total_questions}")
     return all_questions
 
 # API Endpoints
