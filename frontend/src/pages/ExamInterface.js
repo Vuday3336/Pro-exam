@@ -240,78 +240,102 @@ const ExamInterface = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col lg:flex-row">
-      {/* Question Palette - Left Sidebar (25% on desktop, full width on mobile) */}
-      <div className="w-full lg:w-1/4 bg-black/20 backdrop-blur-lg border-b lg:border-r lg:border-b-0 border-white/20 p-4 lg:overflow-y-auto">
-        {/* Timer */}
-        <div className="mb-6">
-          <div className={`text-center p-4 rounded-lg ${
-            timeLeft < 300 ? 'bg-red-500/20 border-red-500' : 'bg-blue-500/20 border-blue-500'
-          } border`}>
-            <Clock className="w-6 h-6 mx-auto mb-2 text-white" />
-            <p className="text-2xl font-bold text-white">{formatTime(timeLeft)}</p>
-            <p className="text-xs text-gray-400">Time Remaining</p>
-          </div>
-        </div>
-
-        {/* Subject-wise Question Navigation */}
-        <div className="space-y-4">
-          {Object.entries(subjectGroups).map(([subject, questions]) => (
-            <div key={subject} className="bg-white/5 rounded-lg p-3">
-              <h3 className="text-white font-semibold mb-3 text-sm">{subject}</h3>
-              <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-5 gap-2">
-                {questions.map((question, idx) => {
-                  const originalIndex = question.originalIndex;
-                  const status = getQuestionStatus(originalIndex);
-                  return (
-                    <button
-                      key={originalIndex}
-                      onClick={() => setCurrentQuestionIndex(originalIndex)}
-                      className={`w-12 h-12 sm:w-10 sm:h-10 lg:w-10 lg:h-10 rounded-lg text-sm font-semibold transition-all ${
-                        getStatusColor(status)
-                      } ${
-                        originalIndex === currentQuestionIndex ? 'ring-2 ring-white' : ''
-                      }`}
-                    >
-                      {originalIndex + 1}
-                    </button>
-                  );
-                })}
-              </div>
+      {/* Question Palette - Desktop Sidebar / Mobile Collapsible */}
+      <div className="lg:w-1/4 bg-black/20 backdrop-blur-lg border-b lg:border-r lg:border-b-0 border-white/20 lg:overflow-y-auto">
+        {/* Mobile Question Palette Toggle */}
+        <div className="lg:hidden">
+          <button
+            onClick={() => setShowMobileQuestionPalette(!showMobileQuestionPalette)}
+            className="w-full flex items-center justify-between p-4 text-white bg-black/30 hover:bg-black/40 transition-colors"
+          >
+            <div className="flex items-center space-x-2">
+              <Flag className="w-5 h-5" />
+              <span className="font-semibold">Question Palette</span>
+              <span className="text-sm text-gray-400">({currentQuestionIndex + 1}/{currentExam.questions.length})</span>
             </div>
-          ))}
+            {showMobileQuestionPalette ? 
+              <ChevronUp className="w-5 h-5" /> : 
+              <ChevronDown className="w-5 h-5" />
+            }
+          </button>
         </div>
 
-        {/* Legend */}
-        <div className="mt-6 space-y-2 text-xs">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-500 rounded"></div>
-            <span className="text-gray-400">Answered</span>
+        {/* Question Palette Content */}
+        <div className={`${showMobileQuestionPalette ? 'block' : 'hidden'} lg:block p-4`}>
+          {/* Timer */}
+          <div className="mb-6">
+            <div className={`text-center p-4 rounded-lg ${
+              timeLeft < 300 ? 'bg-red-500/20 border-red-500' : 'bg-blue-500/20 border-blue-500'
+            } border`}>
+              <Clock className="w-6 h-6 mx-auto mb-2 text-white" />
+              <p className="text-2xl font-bold text-white">{formatTime(timeLeft)}</p>
+              <p className="text-xs text-gray-400">Time Remaining</p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-purple-500 rounded"></div>
-            <span className="text-gray-400">Answered & Marked</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-blue-500 rounded"></div>
-            <span className="text-gray-400">Marked for Review</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-red-500 rounded"></div>
-            <span className="text-gray-400">Not Answered</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-gray-400 rounded"></div>
-            <span className="text-gray-400">Not Visited</span>
-          </div>
-        </div>
 
-        {/* Submit Button */}
-        <button
-          onClick={() => setShowSubmitConfirm(true)}
-          className="w-full mt-6 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white py-3 rounded-lg font-semibold transition-all"
-        >
-          Submit Exam
-        </button>
+          {/* Subject-wise Question Navigation */}
+          <div className="space-y-4">
+            {Object.entries(subjectGroups).map(([subject, questions]) => (
+              <div key={subject} className="bg-white/5 rounded-lg p-3">
+                <h3 className="text-white font-semibold mb-3 text-sm">{subject}</h3>
+                <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-5 gap-2">
+                  {questions.map((question, idx) => {
+                    const originalIndex = question.originalIndex;
+                    const status = getQuestionStatus(originalIndex);
+                    return (
+                      <button
+                        key={originalIndex}
+                        onClick={() => {
+                          setCurrentQuestionIndex(originalIndex);
+                          setShowMobileQuestionPalette(false); // Auto-close on mobile after selection
+                        }}
+                        className={`w-12 h-12 sm:w-10 sm:h-10 lg:w-10 lg:h-10 rounded-lg text-sm font-semibold transition-all ${
+                          getStatusColor(status)
+                        } ${
+                          originalIndex === currentQuestionIndex ? 'ring-2 ring-white' : ''
+                        }`}
+                      >
+                        {originalIndex + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-6 space-y-2 text-xs">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span className="text-gray-400">Answered</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-purple-500 rounded"></div>
+              <span className="text-gray-400">Answered & Marked</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span className="text-gray-400">Marked for Review</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-red-500 rounded"></div>
+              <span className="text-gray-400">Not Answered</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span className="text-gray-400">Not Visited</span>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            onClick={() => setShowSubmitConfirm(true)}
+            className="w-full mt-6 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white py-3 rounded-lg font-semibold transition-all"
+          >
+            Submit Exam
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area (75% on desktop, full width on mobile) */}
