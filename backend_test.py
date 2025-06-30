@@ -200,6 +200,212 @@ def test_google_oauth():
         print(f"❌ Google OAuth Endpoint Test: FAILED - {str(e)}")
         return False
 
+def test_get_active_sessions():
+    """Test getting active sessions endpoint"""
+    print("Testing Get Active Sessions Endpoint...")
+    try:
+        # Ensure we have a token
+        global token
+        if not token:
+            print("❌ No authentication token available. Login test must pass first.")
+            return False
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(f"{API_URL}/auth/sessions", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        assert response.status_code == 200, "Get active sessions failed"
+        assert "active_sessions" in response.json(), "Response missing 'active_sessions' field"
+        
+        # Verify session data structure
+        sessions = response.json()["active_sessions"]
+        assert len(sessions) > 0, "User should have at least one active session"
+        
+        # Check session fields
+        session = sessions[0]
+        assert "session_id" in session, "Session missing 'session_id' field"
+        assert "device_type" in session, "Session missing 'device_type' field"
+        assert "browser" in session, "Session missing 'browser' field"
+        assert "ip_address" in session, "Session missing 'ip_address' field"
+        assert "login_time" in session, "Session missing 'login_time' field"
+        
+        print("✅ Get Active Sessions Test: PASSED")
+        return True
+    except Exception as e:
+        print(f"❌ Get Active Sessions Test: FAILED - {str(e)}")
+        return False
+
+def test_login_from_second_device():
+    """Test login from a second device to verify session management"""
+    print("Testing Login from Second Device...")
+    try:
+        login_data = {
+            "email": TEST_USER_DEVICE2["email"],
+            "password": TEST_USER_DEVICE2["password"]
+        }
+        
+        # Add a custom user agent to simulate a different device
+        headers = {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+        }
+        
+        response = requests.post(f"{API_URL}/auth/login", json=login_data, headers=headers)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        assert response.status_code == 200, "Login from second device failed"
+        assert "token" in response.json(), "Response missing 'token' field"
+        assert "user" in response.json(), "Response missing 'user' field"
+        
+        # Store the token for the second device
+        global token_device2
+        token_device2 = response.json()["token"]
+        
+        # Verify that the user has an active session
+        assert "active_sessions" in response.json()["user"], "User should have active_sessions field"
+        assert len(response.json()["user"]["active_sessions"]) == 1, "User should have exactly one active session (previous session should be logged out)"
+        
+        print("✅ Login from Second Device Test: PASSED")
+        return True
+    except Exception as e:
+        print(f"❌ Login from Second Device Test: FAILED - {str(e)}")
+        return False
+
+def test_first_device_session_invalidated():
+    """Test that the first device session is invalidated after login from second device"""
+    print("Testing First Device Session Invalidation...")
+    try:
+        # Ensure we have a token for the first device
+        global token
+        if not token:
+            print("❌ No authentication token available for first device. Login test must pass first.")
+            return False
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(f"{API_URL}/auth/me", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        # We expect a 401 error since the first device session should be invalidated
+        assert response.status_code == 401, "Expected 401 status code for invalidated session"
+        print(f"Response: {response.json()}")
+        assert "detail" in response.json(), "Response missing 'detail' field"
+        assert "Session expired or invalid" in response.json()["detail"], "Unexpected error message"
+        
+        print("✅ First Device Session Invalidation Test: PASSED")
+        return True
+    except Exception as e:
+        print(f"❌ First Device Session Invalidation Test: FAILED - {str(e)}")
+        return False
+
+def test_second_device_session_valid():
+    """Test that the second device session is still valid"""
+    print("Testing Second Device Session Validity...")
+    try:
+        # Ensure we have a token for the second device
+        global token_device2
+        if not token_device2:
+            print("❌ No authentication token available for second device. Login from second device test must pass first.")
+            return False
+        
+        headers = {"Authorization": f"Bearer {token_device2}"}
+        response = requests.get(f"{API_URL}/auth/me", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        # We expect a 200 OK since the second device session should be valid
+        assert response.status_code == 200, "Second device session should be valid"
+        print(f"Response: {response.json()}")
+        assert "email" in response.json(), "Response missing user data"
+        
+        print("✅ Second Device Session Validity Test: PASSED")
+        return True
+    except Exception as e:
+        print(f"❌ Second Device Session Validity Test: FAILED - {str(e)}")
+        return False
+
+def test_logout_endpoint():
+    """Test the logout endpoint"""
+    print("Testing Logout Endpoint...")
+    try:
+        # Ensure we have a token for the second device
+        global token_device2
+        if not token_device2:
+            print("❌ No authentication token available for second device. Login from second device test must pass first.")
+            return False
+        
+        headers = {"Authorization": f"Bearer {token_device2}"}
+        response = requests.post(f"{API_URL}/auth/logout", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        assert response.status_code == 200, "Logout failed"
+        assert "message" in response.json(), "Response missing 'message' field"
+        assert "Logged out successfully" in response.json()["message"], "Unexpected message"
+        
+        # Verify that the session is invalidated
+        response = requests.get(f"{API_URL}/auth/me", headers=headers)
+        print(f"Status Code after logout: {response.status_code}")
+        assert response.status_code == 401, "Session should be invalidated after logout"
+        
+        print("✅ Logout Test: PASSED")
+        return True
+    except Exception as e:
+        print(f"❌ Logout Test: FAILED - {str(e)}")
+        return False
+
+def test_logout_other_devices():
+    """Test the logout-other-devices endpoint"""
+    print("Testing Logout Other Devices Endpoint...")
+    try:
+        # First, login again to get a valid token
+        login_data = {
+            "email": TEST_USER["email"],
+            "password": TEST_USER["password"]
+        }
+        
+        response = requests.post(f"{API_URL}/auth/login", json=login_data)
+        assert response.status_code == 200, "Login failed"
+        
+        global token
+        token = response.json()["token"]
+        
+        # Now login from a second device
+        headers_device2 = {
+            "User-Agent": "Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+        }
+        
+        response = requests.post(f"{API_URL}/auth/login", json=login_data, headers=headers_device2)
+        assert response.status_code == 200, "Login from second device failed"
+        
+        global token_device2
+        token_device2 = response.json()["token"]
+        
+        # Now logout other devices from the second device
+        headers = {"Authorization": f"Bearer {token_device2}"}
+        response = requests.post(f"{API_URL}/auth/logout-other-devices", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        assert response.status_code == 200, "Logout other devices failed"
+        assert "message" in response.json(), "Response missing 'message' field"
+        
+        # Verify that the first device session is invalidated
+        headers_device1 = {"Authorization": f"Bearer {token}"}
+        response = requests.get(f"{API_URL}/auth/me", headers=headers_device1)
+        print(f"Status Code for first device after logout-other-devices: {response.status_code}")
+        assert response.status_code == 401, "First device session should be invalidated"
+        
+        # Verify that the second device session is still valid
+        response = requests.get(f"{API_URL}/auth/me", headers=headers)
+        print(f"Status Code for second device after logout-other-devices: {response.status_code}")
+        assert response.status_code == 200, "Second device session should still be valid"
+        
+        print("✅ Logout Other Devices Test: PASSED")
+        return True
+    except Exception as e:
+        print(f"❌ Logout Other Devices Test: FAILED - {str(e)}")
+        return False
+
 def test_exam_creation(exam_type="JEE Main", subjects=None):
     """Test exam creation endpoint requiring authentication"""
     print(f"Testing Exam Creation Endpoint for {exam_type}...")
