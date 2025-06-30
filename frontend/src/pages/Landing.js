@@ -13,7 +13,7 @@ const Landing = () => {
     {
       icon: <Target className="w-8 h-8" />,
       title: "Multi-Exam Support",
-      description: "JEE Main, NEET, EMCET Engineering & Medical - all in one platform"
+      description: "JEE Main, NEET, EAMCET Engineering & Medical - all in one platform"
     },
     {
       icon: <Zap className="w-8 h-8" />,
