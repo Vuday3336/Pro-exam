@@ -21,14 +21,27 @@ export const ExamProvider = ({ children }) => {
 
   const createExam = async (examConfig) => {
     setExamLoading(true);
-    toast.loading('Generating AI-powered questions...', { id: 'exam-creation' });
+    
+    // Show more detailed loading message based on question count
+    const questionCount = examConfig.question_count;
+    let loadingMessage = 'Generating AI-powered questions...';
+    
+    if (questionCount >= 75) {
+      loadingMessage = `Generating ${questionCount} AI questions... This may take 1-2 minutes for quality content.`;
+    } else if (questionCount >= 50) {
+      loadingMessage = `Generating ${questionCount} AI questions... Please wait 30-60 seconds.`;
+    } else if (questionCount >= 20) {
+      loadingMessage = `Generating ${questionCount} AI questions... This will take 15-30 seconds.`;
+    }
+    
+    toast.loading(loadingMessage, { id: 'exam-creation', duration: 300000 }); // 5 minutes max
     
     try {
       const response = await axios.post(`${API_BASE_URL}/exams/create`, examConfig);
       const exam = response.data.exam;
       
       setCurrentExam(exam);
-      toast.success('Exam created successfully!', { id: 'exam-creation' });
+      toast.success(`Exam created with ${exam.questions.length} questions!`, { id: 'exam-creation' });
       
       return { success: true, exam };
     } catch (error) {
