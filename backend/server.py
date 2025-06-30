@@ -157,10 +157,176 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="User not found")
     return User(**user)
 
-# AI Question Generation
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+# AI Question Generation with Chunked Approach
+async def generate_questions_chunk(subject: str, count: int, exam_config: ExamConfig, chunk_size: int = 5) -> List[Question]:
+    """Generate questions in chunks to avoid timeout and size issues"""
+    all_questions = []
+    
+    # Split into smaller chunks
+    chunks = []
+    remaining = count
+    while remaining > 0:
+        current_chunk = min(chunk_size, remaining)
+        chunks.append(current_chunk)
+        remaining -= current_chunk
+    
+    logger.info(f"Generating {count} questions for {subject} in {len(chunks)} chunks: {chunks}")
+    
+    for i, chunk_count in enumerate(chunks):
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                prompt = f"""
+                Generate exactly {chunk_count} {exam_config.difficulty}-level MCQ questions for {subject}.
+                Exam Type: {exam_config.exam_type}
+                
+                IMPORTANT REQUIREMENTS:
+                - Generate EXACTLY {chunk_count} questions, no more, no less
+                - Each question must have exactly 4 options (A, B, C, D)
+                - Only one correct answer per question
+                - Include detailed solution explanation
+                - Questions should be unique and {exam_config.exam_type}-appropriate
+                - Difficulty should match {exam_config.difficulty} level
+                - Cover various topics within {subject}
+                
+                Output ONLY valid JSON in this EXACT format (no extra text):
+                {{
+                    "questions": [
+                        {{
+                            "question": "Question text here",
+                            "options": ["Option A", "Option B", "Option C", "Option D"],
+                            "correct_index": 0,
+                            "correct_answer": "A",
+                            "solution": "Detailed solution explanation",
+                            "difficulty": "{exam_config.difficulty}",
+                            "subject": "{subject}",
+                            "topic": "Topic name",
+                            "exam_type": "{exam_config.exam_type}"
+                        }}
+                    ]
+                }}
+                """
+                
+                # Generate with timeout
+                response = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None, lambda: model.generate_content(
+                            prompt,
+                            generation_config=genai.types.GenerationConfig(
+                                temperature=0.7,
+                                max_output_tokens=8192,
+                            )
+                        )
+                    ),
+                    timeout=60.0  # 60 second timeout per chunk
+                )
+                
+                response_text = response.text.strip()
+                
+                # Clean JSON response - be more aggressive in cleaning
+                if "```json" in response_text:
+                    start = response_text.find("```json") + 7
+                    end = response_text.rfind("```")
+                    if end > start:
+                        response_text = response_text[start:end].strip()
+                elif "```" in response_text:
+                    start = response_text.find("```") + 3
+                    end = response_text.rfind("```")
+                    if end > start:
+                        response_text = response_text[start:end].strip()
+                
+                # Find JSON content if there's extra text
+                json_start = response_text.find("{")
+                json_end = response_text.rfind("}") + 1
+                if json_start >= 0 and json_end > json_start:
+                    response_text = response_text[json_start:json_end]
+                
+                # Parse JSON
+                parsed_response = json.loads(response_text)
+                chunk_questions = parsed_response.get("questions", [])
+                
+                # Validate we got the expected number of questions
+                if len(chunk_questions) != chunk_count:
+                    logger.warning(f"Expected {chunk_count} questions, got {len(chunk_questions)} for {subject} chunk {i+1}")
+                
+                # Convert to Question objects
+                for q_data in chunk_questions:
+                    try:
+                        question = Question(
+                            question=q_data["question"],
+                            options=q_data["options"],
+                            correct_index=int(q_data["correct_index"]),
+                            correct_answer=q_data["correct_answer"],
+                            solution=q_data["solution"],
+                            difficulty=q_data["difficulty"],
+                            subject=q_data["subject"],
+                            topic=q_data.get("topic", "General"),
+                            exam_type=q_data["exam_type"]
+                        )
+                        all_questions.append(question)
+                    except Exception as e:
+                        logger.error(f"Error parsing question: {str(e)}")
+                        continue
+                
+                logger.info(f"Successfully generated {len(chunk_questions)} questions for {subject} chunk {i+1}")
+                break  # Success, break retry loop
+                
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout generating {subject} chunk {i+1}, attempt {attempt+1}")
+                if attempt == max_retries - 1:
+                    # Add fallback questions for this chunk
+                    for j in range(chunk_count):
+                        fallback_question = Question(
+                            question=f"Sample {subject} question {len(all_questions) + j + 1} for {exam_config.exam_type}",
+                            options=[
+                                f"Option A for question {len(all_questions) + j + 1}",
+                                f"Option B for question {len(all_questions) + j + 1}",
+                                f"Option C for question {len(all_questions) + j + 1}",
+                                f"Option D for question {len(all_questions) + j + 1}"
+                            ],
+                            correct_index=0,
+                            correct_answer="A",
+                            solution=f"This is a fallback question for {subject}.",
+                            difficulty=exam_config.difficulty,
+                            subject=subject,
+                            topic="General",
+                            exam_type=exam_config.exam_type
+                        )
+                        all_questions.append(fallback_question)
+                    logger.warning(f"Used fallback questions for {subject} chunk {i+1}")
+            except Exception as e:
+                logger.error(f"Error generating {subject} chunk {i+1}, attempt {attempt+1}: {str(e)}")
+                if attempt == max_retries - 1:
+                    # Add fallback questions for this chunk
+                    for j in range(chunk_count):
+                        fallback_question = Question(
+                            question=f"Sample {subject} question {len(all_questions) + j + 1} for {exam_config.exam_type}",
+                            options=[
+                                f"Option A for question {len(all_questions) + j + 1}",
+                                f"Option B for question {len(all_questions) + j + 1}",
+                                f"Option C for question {len(all_questions) + j + 1}",
+                                f"Option D for question {len(all_questions) + j + 1}"
+                            ],
+                            correct_index=0,
+                            correct_answer="A",
+                            solution=f"This is a fallback question for {subject}.",
+                            difficulty=exam_config.difficulty,
+                            subject=subject,
+                            topic="General",
+                            exam_type=exam_config.exam_type
+                        )
+                        all_questions.append(fallback_question)
+                    logger.warning(f"Used fallback questions for {subject} chunk {i+1}")
+        
+        # Small delay between chunks to avoid rate limiting
+        if i < len(chunks) - 1:
+            await asyncio.sleep(2)
+    
+    logger.info(f"Generated total {len(all_questions)} questions for {subject}")
+    return all_questions
+
 async def generate_questions_with_gemini(exam_config: ExamConfig) -> List[Question]:
-    """Generate questions using Gemini AI with retry mechanism"""
+    """Generate questions using Gemini AI with chunked approach and robust error handling"""
     
     # Subject distribution based on exam type
     subject_distribution = {
@@ -187,84 +353,65 @@ async def generate_questions_with_gemini(exam_config: ExamConfig) -> List[Questi
             for subject in exam_config.subjects
         }
     
+    # Adjust to ensure we get exactly the requested number of questions
+    current_total = sum(questions_per_subject.values())
+    if current_total < total_questions:
+        # Add remaining questions to the first subject
+        first_subject = list(questions_per_subject.keys())[0]
+        questions_per_subject[first_subject] += (total_questions - current_total)
+    elif current_total > total_questions:
+        # Remove excess questions from the last subject
+        last_subject = list(questions_per_subject.keys())[-1]
+        questions_per_subject[last_subject] -= (current_total - total_questions)
+        questions_per_subject[last_subject] = max(1, questions_per_subject[last_subject])
+    
+    logger.info(f"Question distribution: {questions_per_subject}")
+    
     all_questions = []
     
+    # Generate questions for each subject concurrently but with controlled concurrency
+    tasks = []
     for subject, count in questions_per_subject.items():
-        prompt = f"""
-        Generate {count} {exam_config.difficulty}-level MCQ questions for {subject} 
-        Exam Type: {exam_config.exam_type}
-        
-        Requirements:
-        - Each question must have exactly 4 options (A, B, C, D)
-        - Only one correct answer
-        - Include detailed solution explanation
-        - Questions should be unique and {exam_config.exam_type}-appropriate
-        - Difficulty should match {exam_config.difficulty} level
-        - Cover various topics within {subject}
-        
-        Output ONLY valid JSON in this exact format:
-        {{
-            "questions": [
-                {{
-                    "question": "Question text here",
-                    "options": ["Option A", "Option B", "Option C", "Option D"],
-                    "correct_index": 0,
-                    "correct_answer": "A",
-                    "solution": "Detailed solution explanation",
-                    "difficulty": "{exam_config.difficulty}",
-                    "subject": "{subject}",
-                    "topic": "Topic name",
-                    "exam_type": "{exam_config.exam_type}"
-                }}
-            ]
-        }}
-        """
-        
+        task = generate_questions_chunk(subject, count, exam_config)
+        tasks.append(task)
+    
+    # Execute tasks with some concurrency but not all at once to avoid rate limits
+    for task in tasks:
         try:
-            response = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: model.generate_content(prompt)
-            )
-            
-            response_text = response.text.strip()
-            
-            # Clean JSON response
-            if response_text.startswith("```json"):
-                response_text = response_text[7:-3]
-            elif response_text.startswith("```"):
-                response_text = response_text[3:-3]
-            
-            parsed_response = json.loads(response_text)
-            
-            for q_data in parsed_response.get("questions", []):
-                question = Question(
-                    question=q_data["question"],
-                    options=q_data["options"],
-                    correct_index=q_data["correct_index"],
-                    correct_answer=q_data["correct_answer"],
-                    solution=q_data["solution"],
-                    difficulty=q_data["difficulty"],
-                    subject=q_data["subject"],
-                    topic=q_data.get("topic", "General"),
-                    exam_type=q_data["exam_type"]
-                )
-                all_questions.append(question)
-                
+            subject_questions = await task
+            all_questions.extend(subject_questions)
         except Exception as e:
-            logger.error(f"Error generating questions for {subject}: {str(e)}")
-            # Fallback to basic questions if AI fails
+            logger.error(f"Failed to generate questions for a subject: {str(e)}")
+    
+    # Ensure we have the minimum required questions
+    if len(all_questions) < total_questions:
+        missing = total_questions - len(all_questions)
+        logger.warning(f"Missing {missing} questions, adding fallback questions")
+        
+        for i in range(missing):
             fallback_question = Question(
-                question=f"Sample {subject} question for {exam_config.exam_type}",
-                options=["Option A", "Option B", "Option C", "Option D"],
+                question=f"Sample question {len(all_questions) + i + 1} for {exam_config.exam_type}",
+                options=[
+                    f"Option A for question {len(all_questions) + i + 1}",
+                    f"Option B for question {len(all_questions) + i + 1}",
+                    f"Option C for question {len(all_questions) + i + 1}",
+                    f"Option D for question {len(all_questions) + i + 1}"
+                ],
                 correct_index=0,
                 correct_answer="A",
                 solution="This is a fallback question.",
                 difficulty=exam_config.difficulty,
-                subject=subject,
+                subject=exam_config.subjects[0],
                 topic="General",
                 exam_type=exam_config.exam_type
             )
             all_questions.append(fallback_question)
     
+    # Trim if we have too many questions
+    if len(all_questions) > total_questions:
+        all_questions = all_questions[:total_questions]
+    
+    logger.info(f"Final question count: {len(all_questions)} (requested: {total_questions})")
     return all_questions
 
 # API Endpoints
