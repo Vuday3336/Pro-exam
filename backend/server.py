@@ -110,7 +110,7 @@ class GoogleAuth(BaseModel):
     token: str
 
 class ExamConfig(BaseModel):
-    exam_type: str  # JEE Main, NEET, EMCET Engineering, EMCET Medical
+    exam_type: str  # JEE Main, NEET, EAMCET Engineering, EAMCET Medical
     subjects: List[str]
     question_count: int
     duration: int  # in minutes
