@@ -238,6 +238,30 @@ frontend:
         agent: "main"
         comment: "User dashboard with statistics, recent exams, quick actions. Profile management page for user settings."
 
+  - task: "EMCET to EAMCET Global Replacement"
+    implemented: false
+    working: "NA"
+    file: "multiple files across frontend and backend"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "User requested to change all instances of 'EMCET' to 'EAMCET' throughout the application. Found 24 instances across backend and frontend files. This is critical for brand consistency and accurate exam categorization."
+
+  - task: "Google OAuth Authentication Fix"
+    implemented: false
+    working: false
+    file: "/app/frontend/src/components/GoogleLoginButton.js, /app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Google OAuth authentication is not working properly. User reported 'google sign up also not working'. Need to debug and fix the Google OAuth flow for both login and registration."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
