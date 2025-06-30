@@ -32,10 +32,11 @@ const ExamInterface = () => {
 
   // Load exam data
   useEffect(() => {
-    if (examId) {
+    if (examId && examId !== currentExam?.id) {
+      console.log('Loading exam:', examId);
       getExam(examId);
     }
-  }, [examId, getExam]);
+  }, [examId]); // Only depend on examId, not getExam
 
   // Timer effect
   useEffect(() => {
