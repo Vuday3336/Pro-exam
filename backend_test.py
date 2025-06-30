@@ -600,6 +600,110 @@ def test_exam_creation(exam_type="JEE Main", subjects=None):
         print(f"❌ Exam Creation Test for {exam_type}: FAILED - {str(e)}")
         return False
 
+def test_question_validation():
+    """Test that questions with forbidden phrases are rejected"""
+    print("Testing Question Validation...")
+    try:
+        # Login again to get a fresh token
+        login_data = {
+            "email": TEST_USER["email"],
+            "password": TEST_USER["password"]
+        }
+        
+        login_response = requests.post(f"{API_URL}/auth/login", json=login_data)
+        if login_response.status_code != 200:
+            print(f"❌ Login failed with status code {login_response.status_code}")
+            return False
+        
+        # Get the token from the login response
+        token = login_response.json()["token"]
+        
+        # Create multiple exams with different subjects to test validation
+        subjects_to_test = [
+            ["Physics"],
+            ["Chemistry"],
+            ["Mathematics"],
+            ["Biology"]
+        ]
+        
+        all_questions = []
+        
+        for subjects in subjects_to_test:
+            exam_config = {
+                "exam_type": "JEE Main" if subjects[0] != "Biology" else "NEET",
+                "subjects": subjects,
+                "question_count": 3,  # Small number for quick testing
+                "duration": 30,  # 30 minutes
+                "difficulty": "Medium"
+            }
+            
+            headers = {"Authorization": f"Bearer {token}"}
+            print(f"Creating exam with subject: {subjects[0]}...")
+            response = requests.post(f"{API_URL}/exams/create", json=exam_config, headers=headers)
+            
+            if response.status_code == 200 and "exam" in response.json() and "questions" in response.json()["exam"]:
+                all_questions.extend(response.json()["exam"]["questions"])
+        
+        print(f"Collected {len(all_questions)} questions for validation testing")
+        
+        # Check for forbidden phrases in all collected questions
+        forbidden_phrases = [
+            "sample", "Sample", "SAMPLE",
+            "question 1", "Question 1", "QUESTION 1",
+            "option a for", "Option A for", "OPTION A FOR",
+            "placeholder", "Placeholder", "PLACEHOLDER",
+            "example question", "Example Question", "EXAMPLE QUESTION",
+            "template", "Template", "TEMPLATE"
+        ]
+        
+        sample_questions_found = []
+        
+        for question in all_questions:
+            question_text = question["question"]
+            for phrase in forbidden_phrases:
+                if phrase.lower() in question_text.lower():
+                    sample_questions_found.append({
+                        "question": question_text,
+                        "forbidden_phrase": phrase
+                    })
+                    break
+        
+        if sample_questions_found:
+            print(f"❌ Found {len(sample_questions_found)} questions with forbidden phrases:")
+            for i, q in enumerate(sample_questions_found[:3]):  # Show only first 3 examples
+                print(f"  {i+1}. Question: '{q['question'][:100]}...' contains '{q['forbidden_phrase']}'")
+            if len(sample_questions_found) > 3:
+                print(f"  ... and {len(sample_questions_found) - 3} more")
+            
+            print("❌ Question Validation Test: FAILED - Sample/template questions were not rejected")
+            return False
+        else:
+            print("✅ No questions with forbidden phrases found")
+            
+            # Check for minimum question quality
+            short_questions = []
+            for question in all_questions:
+                question_text = question["question"]
+                if len(question_text.split()) < 8:
+                    short_questions.append(question_text)
+            
+            if short_questions:
+                print(f"❌ Found {len(short_questions)} questions that are too short:")
+                for i, q in enumerate(short_questions[:3]):
+                    print(f"  {i+1}. '{q}'")
+                if len(short_questions) > 3:
+                    print(f"  ... and {len(short_questions) - 3} more")
+                
+                print("❌ Question Validation Test: FAILED - Questions with insufficient content were not rejected")
+                return False
+            
+            print("✅ All questions meet minimum quality standards")
+            print("✅ Question Validation Test: PASSED")
+            return True
+    except Exception as e:
+        print(f"❌ Question Validation Test: FAILED - {str(e)}")
+        return False
+
 def run_all_tests():
     """Run all tests in sequence"""
     print_separator()
@@ -657,19 +761,23 @@ def run_all_tests():
     results["Logout Other Devices"] = test_logout_other_devices()
     print_separator()
     
-    # Test 13: JEE Main Exam Creation
+    # Test 13: Question Validation
+    results["Question Validation"] = test_question_validation()
+    print_separator()
+    
+    # Test 14: JEE Main Exam Creation
     results["JEE Main Exam Creation"] = test_exam_creation("JEE Main")
     print_separator()
     
-    # Test 14: NEET Exam Creation
+    # Test 15: NEET Exam Creation
     results["NEET Exam Creation"] = test_exam_creation("NEET")
     print_separator()
     
-    # Test 15: EAMCET Engineering Exam Creation
+    # Test 16: EAMCET Engineering Exam Creation
     results["EAMCET Engineering Exam Creation"] = test_exam_creation("EAMCET Engineering")
     print_separator()
     
-    # Test 16: EAMCET Medical Exam Creation
+    # Test 17: EAMCET Medical Exam Creation
     results["EAMCET Medical Exam Creation"] = test_exam_creation("EAMCET Medical")
     print_separator()
     
