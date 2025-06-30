@@ -5,6 +5,8 @@ import {
   Clock, 
   ChevronLeft, 
   ChevronRight, 
+  ChevronDown,
+  ChevronUp,
   Flag, 
   CheckCircle2, 
   Circle,
