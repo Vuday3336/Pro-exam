@@ -54,16 +54,32 @@ export const ExamProvider = ({ children }) => {
   };
 
   const getExam = async (examId) => {
+    if (!examId) {
+      console.error('No examId provided to getExam');
+      return { success: false, error: 'No exam ID provided' };
+    }
+    
     setExamLoading(true);
     try {
+      console.log('Fetching exam with ID:', examId);
       const response = await axios.get(`${API_BASE_URL}/exams/${examId}`);
       const exam = response.data;
       
-      setCurrentExam(exam);
-      return { success: true, exam };
+      if (exam && exam.id) {
+        setCurrentExam(exam);
+        console.log('Exam loaded successfully:', exam.id);
+        return { success: true, exam };
+      } else {
+        throw new Error('Invalid exam data received');
+      }
     } catch (error) {
+      console.error('Error fetching exam:', error);
       const message = error.response?.data?.detail || 'Failed to load exam';
-      toast.error(message);
+      // Only show toast error if it's not a 404 (exam not found)
+      if (error.response?.status !== 404) {
+        toast.error(message, { duration: 2000 });
+      }
+      setCurrentExam(null);
       return { success: false, error: message };
     } finally {
       setExamLoading(false);
