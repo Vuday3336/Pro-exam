@@ -186,31 +186,31 @@ const ExamResults = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
       <div className="border-b border-white/10 backdrop-blur-lg">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
             <div>
-              <h1 className="text-2xl font-bold text-white">Exam Results</h1>
-              <p className="text-gray-400">Detailed analysis of your performance</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">Exam Results</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Detailed analysis of your performance</p>
             </div>
-            <div className="flex space-x-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
               <button
                 onClick={downloadPDF}
                 disabled={downloadingPDF}
-                className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap"
               >
                 <Download className="w-4 h-4" />
                 <span>{downloadingPDF ? 'Generating...' : 'Download PDF'}</span>
               </button>
               <Link 
                 to="/dashboard"
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap"
               >
                 <Home className="w-4 h-4" />
                 <span>Dashboard</span>
               </Link>
               <Link 
                 to="/quick-exam"
-                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Take Another</span>
