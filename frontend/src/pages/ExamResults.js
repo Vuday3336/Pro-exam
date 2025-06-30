@@ -66,6 +66,122 @@ const ExamResults = () => {
     return '📚';
   };
 
+  const downloadPDF = async () => {
+    setDownloadingPDF(true);
+    try {
+      // Create a temporary element for PDF content
+      const pdfContent = document.createElement('div');
+      pdfContent.style.cssText = `
+        width: 800px;
+        padding: 40px;
+        background: white;
+        color: black;
+        font-family: Arial, sans-serif;
+        position: absolute;
+        left: -9999px;
+        top: 0;
+      `;
+
+      pdfContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px;">
+          <h1 style="margin: 0; font-size: 28px; color: #333;">JEE/NEET/EAMCET Exam Report</h1>
+          <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <h2 style="margin-bottom: 15px; color: #333;">Overall Performance</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px;">
+              <strong>Score:</strong> ${examResults.percentage.toFixed(1)}%<br>
+              <strong>Correct Answers:</strong> ${examResults.correct_answers}/${examResults.total_questions}<br>
+              <strong>Time Taken:</strong> ${examResults.time_taken} minutes
+            </div>
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px;">
+              <strong>Questions per Hour:</strong> ${((examResults.correct_answers / examResults.time_taken) * 60).toFixed(1)}<br>
+              <strong>Grade:</strong> ${examResults.percentage >= 80 ? 'Excellent' : examResults.percentage >= 60 ? 'Good' : examResults.percentage >= 40 ? 'Average' : 'Needs Improvement'}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <h2 style="margin-bottom: 15px; color: #333;">Subject-wise Performance</h2>
+          ${Object.entries(examResults.subject_wise_score).map(([subject, scores]) => `
+            <div style="background: #f9f9f9; margin-bottom: 10px; padding: 12px; border-radius: 6px; border-left: 4px solid #007bff;">
+              <strong>${subject}:</strong> ${scores.correct}/${scores.total} 
+              (${((scores.correct / scores.total) * 100).toFixed(1)}%)
+            </div>
+          `).join('')}
+        </div>
+
+        <div>
+          <h2 style="margin-bottom: 15px; color: #333;">Question-wise Analysis</h2>
+          ${examResults.detailed_analysis.map((question, index) => `
+            <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; ${question.is_correct ? 'background: #f0f9ff;' : 'background: #fef2f2;'}">
+              <div style="margin-bottom: 10px;">
+                <strong>Question ${index + 1} (${question.subject}):</strong>
+                ${question.is_correct ? '<span style="color: green;">✓ Correct</span>' : '<span style="color: red;">✗ Incorrect</span>'}
+              </div>
+              <div style="margin-bottom: 8px;">
+                <strong>Q:</strong> ${question.question}
+              </div>
+              <div style="margin-bottom: 8px;">
+                <strong>Your Answer:</strong> ${question.user_answer !== null ? `Option ${String.fromCharCode(65 + question.user_answer)}` : 'Not Answered'}
+              </div>
+              <div style="margin-bottom: 8px;">
+                <strong>Correct Answer:</strong> Option ${String.fromCharCode(65 + question.correct_answer)}
+              </div>
+              ${question.solution ? `<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;"><strong>Solution:</strong> ${question.solution}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      document.body.appendChild(pdfContent);
+
+      // Generate PDF
+      const canvas = await html2canvas(pdfContent, {
+        scale: 1,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Clean up
+      document.body.removeChild(pdfContent);
+
+      // Download PDF
+      pdf.save(`exam-report-${examId}-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
