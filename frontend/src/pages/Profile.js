@@ -30,8 +30,8 @@ const Profile = () => {
   const examOptions = [
     'JEE Main',
     'NEET',
-    'EMCET Engineering',
-    'EMCET Medical'
+    'EAMCET Engineering',
+    'EAMCET Medical'
   ];
 
   const classOptions = [
