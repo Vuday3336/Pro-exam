@@ -209,7 +209,7 @@ const QuickExamSetup = () => {
                   <BookOpen className="w-5 h-5 mr-2" />
                   SELECT SUBJECTS:
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {['Physics', 'Chemistry', 'Mathematics', 'Biology'].map((subject) => {
                     const isAvailable = selectedExam?.subjects.includes(subject);
                     const isSelected = selectedSubjects.includes(subject);
@@ -228,8 +228,8 @@ const QuickExamSetup = () => {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-medium">{subject}</span>
-                          {isSelected && <CheckCircle className="w-5 h-5 text-blue-400" />}
+                          <span className="font-medium text-sm sm:text-base">{subject}</span>
+                          {isSelected && <CheckCircle className="w-6 h-6 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0 ml-2" />}
                         </div>
                       </button>
                     );
