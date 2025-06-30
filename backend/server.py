@@ -521,55 +521,17 @@ async def generate_questions_chunk(subject: str, count: int, exam_config: ExamCo
                         raise Exception(f"Failed to generate valid questions for {subject} after {max_retries} attempts")
                     continue
                 
-                logger.info(f"Successfully generated {len(chunk_questions)} questions for {subject} chunk {i+1}")
+                logger.info(f"Successfully generated {valid_questions_in_chunk} valid questions for {subject} chunk {i+1}")
                 break  # Success, break retry loop
                 
             except asyncio.TimeoutError:
                 logger.warning(f"Timeout generating {subject} chunk {i+1}, attempt {attempt+1}")
                 if attempt == max_retries - 1:
-                    # Add fallback questions for this chunk
-                    for j in range(chunk_count):
-                        fallback_question = Question(
-                            question=f"Sample {subject} question {len(all_questions) + j + 1} for {exam_config.exam_type}",
-                            options=[
-                                f"Option A for question {len(all_questions) + j + 1}",
-                                f"Option B for question {len(all_questions) + j + 1}",
-                                f"Option C for question {len(all_questions) + j + 1}",
-                                f"Option D for question {len(all_questions) + j + 1}"
-                            ],
-                            correct_index=0,
-                            correct_answer="A",
-                            solution=f"This is a fallback question for {subject}.",
-                            difficulty=exam_config.difficulty,
-                            subject=subject,
-                            topic="General",
-                            exam_type=exam_config.exam_type
-                        )
-                        all_questions.append(fallback_question)
-                    logger.warning(f"Used fallback questions for {subject} chunk {i+1}")
+                    raise Exception(f"Failed to generate questions for {subject} due to timeout after {max_retries} attempts. Please try again later or check API quota.")
             except Exception as e:
                 logger.error(f"Error generating {subject} chunk {i+1}, attempt {attempt+1}: {str(e)}")
                 if attempt == max_retries - 1:
-                    # Add fallback questions for this chunk
-                    for j in range(chunk_count):
-                        fallback_question = Question(
-                            question=f"Sample {subject} question {len(all_questions) + j + 1} for {exam_config.exam_type}",
-                            options=[
-                                f"Option A for question {len(all_questions) + j + 1}",
-                                f"Option B for question {len(all_questions) + j + 1}",
-                                f"Option C for question {len(all_questions) + j + 1}",
-                                f"Option D for question {len(all_questions) + j + 1}"
-                            ],
-                            correct_index=0,
-                            correct_answer="A",
-                            solution=f"This is a fallback question for {subject}.",
-                            difficulty=exam_config.difficulty,
-                            subject=subject,
-                            topic="General",
-                            exam_type=exam_config.exam_type
-                        )
-                        all_questions.append(fallback_question)
-                    logger.warning(f"Used fallback questions for {subject} chunk {i+1}")
+                    raise Exception(f"Failed to generate questions for {subject} after {max_retries} attempts: {str(e)}")
         
         # Small delay between chunks to avoid rate limiting
         if i < len(chunks) - 1:
