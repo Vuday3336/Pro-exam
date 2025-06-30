@@ -256,6 +256,12 @@ async def is_session_valid(user_id: str, session_id: str) -> bool:
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     payload = decode_jwt_token(credentials.credentials)
+    
+    # Check if session is still valid
+    session_id = payload.get("session_id")
+    if session_id and not await is_session_valid(payload["user_id"], session_id):
+        raise HTTPException(status_code=401, detail="Session expired or invalid")
+    
     user = await db.users.find_one({"id": payload["user_id"]})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
