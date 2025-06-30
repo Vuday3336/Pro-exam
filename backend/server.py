@@ -165,10 +165,11 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_jwt_token(user_id: str, email: str) -> str:
+def create_jwt_token(user_id: str, email: str, session_id: str = None) -> str:
     payload = {
         "user_id": user_id,
         "email": email,
+        "session_id": session_id or str(uuid.uuid4()),
         "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION),
         "iat": datetime.utcnow()
     }
@@ -182,6 +183,76 @@ def decode_jwt_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+def get_device_info(request) -> dict:
+    """Extract device information from request headers"""
+    user_agent = request.headers.get("user-agent", "Unknown")
+    
+    # Parse device type from user agent
+    device_type = "Unknown"
+    if "Mobile" in user_agent:
+        device_type = "Mobile"
+    elif "Tablet" in user_agent:
+        device_type = "Tablet"
+    elif "Windows" in user_agent or "Macintosh" in user_agent or "Linux" in user_agent:
+        device_type = "Desktop"
+    
+    # Parse browser info
+    browser = "Unknown"
+    if "Chrome" in user_agent:
+        browser = "Chrome"
+    elif "Firefox" in user_agent:
+        browser = "Firefox"
+    elif "Safari" in user_agent:
+        browser = "Safari"
+    elif "Edge" in user_agent:
+        browser = "Edge"
+    
+    return {
+        "device_type": device_type,
+        "browser": browser,
+        "user_agent": user_agent,
+        "ip_address": request.client.host if hasattr(request, 'client') else "Unknown",
+        "login_time": datetime.utcnow()
+    }
+
+async def manage_user_sessions(user_id: str, session_id: str, device_info: dict, max_sessions: int = 1):
+    """Manage user sessions, keeping only the most recent ones"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return
+    
+    # Get current sessions
+    active_sessions = user.get("active_sessions", [])
+    
+    # Remove old sessions if we're at the limit
+    if len(active_sessions) >= max_sessions:
+        # Keep only the most recent sessions (remove oldest)
+        active_sessions = active_sessions[-(max_sessions-1):]
+    
+    # Add new session
+    new_session = {
+        "session_id": session_id,
+        "device_info": device_info,
+        "created_at": datetime.utcnow(),
+        "last_activity": datetime.utcnow()
+    }
+    active_sessions.append(new_session)
+    
+    # Update user's active sessions
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"active_sessions": active_sessions, "last_login": datetime.utcnow()}}
+    )
+
+async def is_session_valid(user_id: str, session_id: str) -> bool:
+    """Check if a session is still valid"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return False
+    
+    active_sessions = user.get("active_sessions", [])
+    return any(session["session_id"] == session_id for session in active_sessions)
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     payload = decode_jwt_token(credentials.credentials)
