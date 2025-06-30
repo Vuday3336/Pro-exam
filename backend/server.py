@@ -598,36 +598,16 @@ async def generate_questions_with_gemini(exam_config: ExamConfig) -> List[Questi
         except Exception as e:
             logger.error(f"Failed to generate questions for a subject: {str(e)}")
     
-    # Ensure we have the minimum required questions
-    if len(all_questions) < total_questions:
-        missing = total_questions - len(all_questions)
-        logger.warning(f"Missing {missing} questions, adding fallback questions")
-        
-        for i in range(missing):
-            fallback_question = Question(
-                question=f"Sample question {len(all_questions) + i + 1} for {exam_config.exam_type}",
-                options=[
-                    f"Option A for question {len(all_questions) + i + 1}",
-                    f"Option B for question {len(all_questions) + i + 1}",
-                    f"Option C for question {len(all_questions) + i + 1}",
-                    f"Option D for question {len(all_questions) + i + 1}"
-                ],
-                correct_index=0,
-                correct_answer="A",
-                solution="This is a fallback question.",
-                difficulty=exam_config.difficulty,
-                subject=exam_config.subjects[0],
-                topic="General",
-                exam_type=exam_config.exam_type
-            )
-            all_questions.append(fallback_question)
+    # Check if we have enough valid questions
+    if len(all_questions) == 0:
+        raise Exception("Failed to generate any valid questions. API quota may be exceeded. Please try again later.")
+    
+    if len(all_questions) < total_questions * 0.5:  # If we have less than 50% of requested questions
+        raise Exception(f"Generated only {len(all_questions)} out of {total_questions} requested questions. API quota may be exceeded. Please try again later or reduce the number of questions.")
     
     # Trim if we have too many questions
     if len(all_questions) > total_questions:
         all_questions = all_questions[:total_questions]
-    
-    if len(all_questions) == 0:
-        raise Exception("Failed to generate any valid questions. Please check AI service availability and try again.")
     
     logger.info(f"Total valid questions generated: {len(all_questions)} out of requested {total_questions}")
     return all_questions
