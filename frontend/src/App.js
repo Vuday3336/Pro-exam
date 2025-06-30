@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ExamProvider } from './contexts/ExamContext';
 import Landing from './pages/Landing';
@@ -12,6 +13,9 @@ import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import './App.css';
+
+// Google OAuth Client ID
+const GOOGLE_CLIENT_ID = "230627886142-059049imca6tcu80un1fbbu8e8ufekk5.apps.googleusercontent.com";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
