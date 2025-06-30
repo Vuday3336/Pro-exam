@@ -259,7 +259,7 @@ frontend:
   - task: "Mobile Responsiveness Optimization"
     implemented: true
     working: true
-    file: "/app/frontend/src/pages/ExamInterface.js, /app/frontend/src/pages/QuickExamSetup.js"
+    file: "/app/frontend/src/pages/ExamInterface.js, /app/frontend/src/pages/QuickExamSetup.js, /app/frontend/src/pages/Landing.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: true
@@ -267,6 +267,9 @@ frontend:
       - working: true
         agent: "main"
         comment: "Fixed mobile responsiveness issues: 1) Increased question number button sizes from w-10 h-10 to w-12 h-12 on mobile for better visibility, 2) Fixed subject selection tick marks size (w-6 h-6 on mobile vs w-5 h-5 on desktop), 3) Improved responsive grid layouts using flex-col lg:flex-row for exam interface, 4) Enhanced mobile text sizing and spacing throughout exam components."
+      - working: true
+        agent: "main"
+        comment: "Fixed Landing page mobile responsiveness issues based on user feedback: 1) Fixed button overlapping by changing from space-x-4 to flex-col sm:flex-row with proper gap-4, 2) Added responsive text sizing (text-3xl sm:text-5xl md:text-7xl), 3) Enhanced padding and spacing for mobile (px-4 sm:px-6), 4) Improved navigation with responsive button sizes, 5) Fixed all sections (hero, features, exam types, CTA) for proper mobile display with better spacing and readable text sizes."
 
   - task: "PDF Download Functionality"
     implemented: true
