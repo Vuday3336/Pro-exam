@@ -149,7 +149,7 @@ export const ExamProvider = ({ children }) => {
       return { success: true, result };
     } catch (error) {
       const message = error.response?.data?.detail || 'Failed to load results';
-      toast.error(message);
+      toast.error(message, { duration: 2000 });
       return { success: false, error: message };
     } finally {
       setExamLoading(false);
