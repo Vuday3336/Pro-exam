@@ -346,12 +346,12 @@ async def generate_questions_chunk(subject: str, count: int, exam_config: ExamCo
                         None, lambda: model.generate_content(
                             prompt,
                             generation_config=genai.types.GenerationConfig(
-                                temperature=0.7,
+                                temperature=0.5,  # Reduced temperature for more consistent, quality responses
                                 max_output_tokens=8192,
                             )
                         )
                     ),
-                    timeout=60.0  # 60 second timeout per chunk
+                    timeout=90.0  # Increased timeout for better quality generation
                 )
                 
                 response_text = response.text.strip()
