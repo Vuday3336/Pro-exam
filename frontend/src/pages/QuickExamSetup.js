@@ -58,8 +58,8 @@ const QuickExamSetup = () => {
       description: 'Physics (40Q), Chemistry (40Q), Mathematics (80Q)'
     },
     {
-      id: 'EMCET Medical',
-      name: 'EMCET Medical',
+      id: 'EAMCET Medical',
+      name: 'EAMCET Medical',
       subjects: ['Physics', 'Chemistry', 'Biology'],
       defaultQuestions: 160,
       defaultDuration: 180,
