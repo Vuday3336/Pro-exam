@@ -286,11 +286,14 @@ frontend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Fixed dashboard endpoint 500 error by properly handling MongoDB ObjectId serialization. Removed _id fields from exam and result documents before returning them in the API response. Also fixed user object serialization in Google OAuth response by calling .dict() method."
+      - working: true
+        agent: "testing"
+        comment: "Verified that the dashboard endpoint is now working correctly. The 500 error has been resolved by properly handling MongoDB ObjectId serialization. The endpoint now returns user data, statistics, and recent exams/results without errors."
 
 metadata:
   created_by: "main_agent"
