@@ -236,9 +236,9 @@ const ExamInterface = () => {
   const subjectGroups = getSubjectQuestions();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
-      {/* Question Palette - Left Sidebar (25%) */}
-      <div className="w-1/4 bg-black/20 backdrop-blur-lg border-r border-white/20 p-4 overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col lg:flex-row">
+      {/* Question Palette - Left Sidebar (25% on desktop, full width on mobile) */}
+      <div className="w-full lg:w-1/4 bg-black/20 backdrop-blur-lg border-b lg:border-r lg:border-b-0 border-white/20 p-4 lg:overflow-y-auto">
         {/* Timer */}
         <div className="mb-6">
           <div className={`text-center p-4 rounded-lg ${
@@ -255,7 +255,7 @@ const ExamInterface = () => {
           {Object.entries(subjectGroups).map(([subject, questions]) => (
             <div key={subject} className="bg-white/5 rounded-lg p-3">
               <h3 className="text-white font-semibold mb-3 text-sm">{subject}</h3>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-5 gap-2">
                 {questions.map((question, idx) => {
                   const originalIndex = question.originalIndex;
                   const status = getQuestionStatus(originalIndex);
@@ -263,7 +263,7 @@ const ExamInterface = () => {
                     <button
                       key={originalIndex}
                       onClick={() => setCurrentQuestionIndex(originalIndex)}
-                      className={`w-10 h-10 rounded-lg text-xs font-semibold transition-all ${
+                      className={`w-12 h-12 sm:w-10 sm:h-10 lg:w-10 lg:h-10 rounded-lg text-sm font-semibold transition-all ${
                         getStatusColor(status)
                       } ${
                         originalIndex === currentQuestionIndex ? 'ring-2 ring-white' : ''
@@ -311,15 +311,15 @@ const ExamInterface = () => {
         </button>
       </div>
 
-      {/* Main Content Area (75%) */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      {/* Main Content Area (75% on desktop, full width on mobile) */}
+      <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
         {/* Question Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-lg lg:text-xl font-semibold text-white">
               Question {currentQuestionIndex + 1} of {currentExam.questions.length}
             </h2>
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-sm lg:text-base">
               {currentQuestion.subject} • {currentQuestion.difficulty}
             </p>
           </div>
