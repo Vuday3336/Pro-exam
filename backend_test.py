@@ -267,8 +267,24 @@ def run_all_tests():
     results["Dashboard"] = test_dashboard()
     print_separator()
     
-    # Test 6: Exam Creation
-    results["Exam Creation"] = test_exam_creation()
+    # Test 6: Google OAuth
+    results["Google OAuth"] = test_google_oauth()
+    print_separator()
+    
+    # Test 7: JEE Main Exam Creation
+    results["JEE Main Exam Creation"] = test_exam_creation("JEE Main")
+    print_separator()
+    
+    # Test 8: NEET Exam Creation
+    results["NEET Exam Creation"] = test_exam_creation("NEET")
+    print_separator()
+    
+    # Test 9: EAMCET Engineering Exam Creation
+    results["EAMCET Engineering Exam Creation"] = test_exam_creation("EAMCET Engineering")
+    print_separator()
+    
+    # Test 10: EAMCET Medical Exam Creation
+    results["EAMCET Medical Exam Creation"] = test_exam_creation("EAMCET Medical")
     print_separator()
     
     # Print summary
