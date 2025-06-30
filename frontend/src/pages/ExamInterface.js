@@ -462,7 +462,8 @@ const ExamInterface = () => {
             </button>
           </div>
         </div>
-          </motion.div>
+        </div>
+      </div>
         </AnimatePresence>
         </div>
       </div>
