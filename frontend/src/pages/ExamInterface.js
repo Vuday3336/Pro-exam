@@ -33,11 +33,11 @@ const ExamInterface = () => {
   // Load exam data
   useEffect(() => {
     if (examId) {
-      loadExam();
+      getExam(examId);
     }
-  }, [examId]);
+  }, [examId, getExam]);
 
-  // Timer logic
+  // Timer effect
   useEffect(() => {
     if (examStarted && timeLeft > 0) {
       const timer = setInterval(() => {
@@ -54,31 +54,23 @@ const ExamInterface = () => {
     }
   }, [examStarted, timeLeft]);
 
-  const loadExam = async () => {
-    const result = await getExam(examId);
-    if (result.success) {
-      const exam = result.exam;
-      if (exam.status === 'created') {
-        // Exam not started yet
-      } else if (exam.status === 'ongoing') {
-        setExamStarted(true);
-        // Calculate remaining time
-        const elapsed = new Date() - new Date(exam.start_time);
-        const remaining = (exam.duration * 60 * 1000) - elapsed;
-        setTimeLeft(Math.max(0, Math.floor(remaining / 1000)));
-      } else {
-        // Exam completed, redirect to results
-        navigate(`/results/${examId}`);
-      }
-    }
-  };
-
-  const handleStartExam = async () => {
-    const result = await startExam(examId);
-    if (result.success) {
+  // Start exam
+  useEffect(() => {
+    if (currentExam && currentExam.questions.length > 0 && !examStarted) {
+      setTimeLeft(currentExam.time_limit * 60); // Convert minutes to seconds
       setExamStarted(true);
-      setTimeLeft(currentExam.duration * 60); // Convert minutes to seconds
     }
+  }, [currentExam, examStarted]);
+
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleAnswerSelect = (questionIndex, optionIndex) => {
@@ -102,40 +94,43 @@ const ExamInterface = () => {
 
   const handleAutoSubmit = useCallback(async () => {
     if (currentExam) {
-      const result = await submitExam(examId, answers);
-      if (result.success) {
-        navigate(`/results/${examId}`);
+      try {
+        await submitExam(currentExam.id, answers);
+        navigate(`/results/${currentExam.id}`);
+      } catch (error) {
+        console.error('Auto-submit failed:', error);
       }
     }
-  }, [examId, answers, currentExam, submitExam, navigate]);
+  }, [currentExam, answers, submitExam, navigate]);
 
   const handleSubmitExam = async () => {
-    const result = await submitExam(examId, answers);
-    if (result.success) {
-      navigate(`/results/${examId}`);
+    try {
+      await submitExam(currentExam.id, answers);
+      navigate(`/results/${currentExam.id}`);
+    } catch (error) {
+      console.error('Submit failed:', error);
     }
-    setShowSubmitConfirm(false);
   };
 
-  const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+  // Group questions by subject
+  const subjectGroups = currentExam?.questions.reduce((groups, question, index) => {
+    const subject = question.subject;
+    if (!groups[subject]) {
+      groups[subject] = [];
+    }
+    groups[subject].push({ ...question, originalIndex: index });
+    return groups;
+  }, {}) || {};
+
+  // Get question status for palette
+  const getQuestionStatus = (questionIndex) => {
+    const isAnswered = answers.hasOwnProperty(questionIndex);
+    const isMarked = markedForReview.has(questionIndex);
     
-    if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getQuestionStatus = (index) => {
-    if (answers.hasOwnProperty(index)) {
-      return markedForReview.has(index) ? 'answered-marked' : 'answered';
-    } else if (markedForReview.has(index)) {
-      return 'marked';
-    } else if (index < currentQuestionIndex) {
-      return 'not-answered';
-    }
+    if (isAnswered && isMarked) return 'answered-marked';
+    if (isAnswered) return 'answered';
+    if (isMarked) return 'marked';
+    if (questionIndex <= currentQuestionIndex) return 'not-answered';
     return 'not-visited';
   };
 
@@ -145,25 +140,11 @@ const ExamInterface = () => {
       case 'answered-marked': return 'bg-purple-500 text-white';
       case 'marked': return 'bg-blue-500 text-white';
       case 'not-answered': return 'bg-red-500 text-white';
-      default: return 'bg-gray-400 text-white';
+      default: return 'bg-gray-400 text-white border border-white/20';
     }
   };
 
-  const getSubjectQuestions = () => {
-    if (!currentExam?.questions) return {};
-    
-    const subjectGroups = {};
-    currentExam.questions.forEach((question, index) => {
-      if (!subjectGroups[question.subject]) {
-        subjectGroups[question.subject] = [];
-      }
-      subjectGroups[question.subject].push({ ...question, originalIndex: index });
-    });
-    
-    return subjectGroups;
-  };
-
-  if (!currentExam || examLoading) {
+  if (!currentExam || !currentExam.questions.length) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -174,69 +155,7 @@ const ExamInterface = () => {
     );
   }
 
-  // Pre-exam screen
-  if (!examStarted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 max-w-2xl w-full"
-        >
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-4">{currentExam.exam_type}</h1>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="bg-white/5 rounded-lg p-4">
-                <p className="text-2xl font-bold text-blue-400">{currentExam.questions.length}</p>
-                <p className="text-gray-400 text-sm">Questions</p>
-              </div>
-              <div className="bg-white/5 rounded-lg p-4">
-                <p className="text-2xl font-bold text-green-400">{currentExam.duration}</p>
-                <p className="text-gray-400 text-sm">Minutes</p>
-              </div>
-              <div className="bg-white/5 rounded-lg p-4">
-                <p className="text-2xl font-bold text-purple-400">{currentExam.configuration.subjects.length}</p>
-                <p className="text-gray-400 text-sm">Subjects</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-white mb-4">Subjects Covered:</h3>
-            <div className="flex flex-wrap gap-2">
-              {currentExam.configuration.subjects.map(subject => (
-                <span key={subject} className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-sm">
-                  {subject}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-white mb-4">Instructions:</h3>
-            <ul className="text-gray-300 space-y-2 text-sm">
-              <li>• Each question has 4 options with only one correct answer</li>
-              <li>• You can navigate between questions using the question palette</li>
-              <li>• Mark questions for review if you want to revisit them</li>
-              <li>• Auto-save happens every 10 seconds</li>
-              <li>• Exam will auto-submit when time runs out</li>
-            </ul>
-          </div>
-
-          <button
-            onClick={handleStartExam}
-            disabled={examLoading}
-            className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-4 rounded-lg font-semibold text-lg transition-all transform hover:scale-105 disabled:opacity-50"
-          >
-            {examLoading ? 'Starting...' : 'Start Exam'}
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
   const currentQuestion = currentExam.questions[currentQuestionIndex];
-  const subjectGroups = getSubjectQuestions();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col lg:flex-row">
@@ -372,98 +291,96 @@ const ExamInterface = () => {
             </div>
           </div>
 
-        {/* Question Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentQuestionIndex}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-8 mb-6"
-          >
-            <div className="mb-6">
-              <p className="text-lg text-white leading-relaxed">
-                {currentQuestion.question}
-              </p>
+          {/* Question Content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuestionIndex}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-8 mb-6"
+            >
+              <div className="mb-6">
+                <p className="text-lg text-white leading-relaxed">
+                  {currentQuestion.question}
+                </p>
+              </div>
+
+              {/* Options */}
+              <div className="space-y-4">
+                {currentQuestion.options.map((option, index) => (
+                  <label
+                    key={index}
+                    className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      answers[currentQuestionIndex] === index
+                        ? 'border-blue-500 bg-blue-500/20'
+                        : 'border-white/20 bg-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`question-${currentQuestionIndex}`}
+                      value={index}
+                      checked={answers[currentQuestionIndex] === index}
+                      onChange={() => handleAnswerSelect(currentQuestionIndex, index)}
+                      className="sr-only"
+                    />
+                    <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center ${
+                      answers[currentQuestionIndex] === index
+                        ? 'border-blue-500 bg-blue-500'
+                        : 'border-gray-400'
+                    }`}>
+                      {answers[currentQuestionIndex] === index && (
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      )}
+                    </div>
+                    <span className="text-white text-base">
+                      <strong>{String.fromCharCode(65 + index)}.</strong> {option}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 sm:gap-0">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+              <button
+                onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+                disabled={currentQuestionIndex === 0}
+                className="flex items-center justify-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
+              >
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Previous</span>
+              </button>
+
+              <button
+                onClick={() => handleMarkForReview(currentQuestionIndex)}
+                className={`flex items-center justify-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all text-sm sm:text-base w-full sm:w-auto ${
+                  markedForReview.has(currentQuestionIndex)
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                }`}
+              >
+                <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">{markedForReview.has(currentQuestionIndex) ? 'Unmark' : 'Mark for Review'}</span>
+                <span className="sm:hidden">{markedForReview.has(currentQuestionIndex) ? 'Unmark' : 'Mark'}</span>
+              </button>
             </div>
 
-            {/* Options */}
-            <div className="space-y-4">
-              {currentQuestion.options.map((option, index) => (
-                <label
-                  key={index}
-                  className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    answers[currentQuestionIndex] === index
-                      ? 'border-blue-500 bg-blue-500/20'
-                      : 'border-white/20 bg-white/5 hover:bg-white/10'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name={`question-${currentQuestionIndex}`}
-                    value={index}
-                    checked={answers[currentQuestionIndex] === index}
-                    onChange={() => handleAnswerSelect(currentQuestionIndex, index)}
-                    className="sr-only"
-                  />
-                  <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center ${
-                    answers[currentQuestionIndex] === index
-                      ? 'border-blue-500 bg-blue-500'
-                      : 'border-gray-400'
-                  }`}>
-                    {answers[currentQuestionIndex] === index && (
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                    )}
-                  </div>
-                  <span className="text-white text-base">
-                    <strong>{String.fromCharCode(65 + index)}.</strong> {option}
-                  </span>
-                </label>
-              ))}
+            <div className="w-full sm:w-auto">
+              <button
+                onClick={() => setCurrentQuestionIndex(Math.min(currentExam.questions.length - 1, currentQuestionIndex + 1))}
+                disabled={currentQuestionIndex === currentExam.questions.length - 1}
+                className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
             </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 sm:gap-0">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-            <button
-              onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
-              disabled={currentQuestionIndex === 0}
-              className="flex items-center justify-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
-            >
-              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Previous</span>
-            </button>
-
-            <button
-              onClick={() => handleMarkForReview(currentQuestionIndex)}
-              className={`flex items-center justify-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all text-sm sm:text-base w-full sm:w-auto ${
-                markedForReview.has(currentQuestionIndex)
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-              }`}
-            >
-              <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">{markedForReview.has(currentQuestionIndex) ? 'Unmark' : 'Mark for Review'}</span>
-              <span className="sm:hidden">{markedForReview.has(currentQuestionIndex) ? 'Unmark' : 'Mark'}</span>
-            </button>
           </div>
-
-          <div className="w-full sm:w-auto">
-            <button
-              onClick={() => setCurrentQuestionIndex(Math.min(currentExam.questions.length - 1, currentQuestionIndex + 1))}
-              disabled={currentQuestionIndex === currentExam.questions.length - 1}
-              className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
-            >
-              <span>Next</span>
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </div>
-        </div>
-          </motion.div>
-        </AnimatePresence>
         </div>
       </div>
 
