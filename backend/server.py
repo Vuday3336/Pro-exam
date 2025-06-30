@@ -1,60 +1,553 @@
-from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional, Dict, Any
 import os
-import logging
-from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import List
 import uuid
-from datetime import datetime
+import json
+import logging
+from datetime import datetime, timedelta
+from pathlib import Path
+from dotenv import load_dotenv
+import google.generativeai as genai
+from tenacity import retry, stop_after_attempt, wait_exponential
+import jwt
+import bcrypt
+from google.auth.transport import requests
+from google.oauth2 import id_token
+import httpx
+import asyncio
 
-
+# Load environment variables
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI
+app = FastAPI(title="JEE/NEET/EMCET Exam Portal API", version="1.0.0")
+api_router = APIRouter(prefix="/api")
+security = HTTPBearer()
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# Gemini AI Configuration
+genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+model = genai.GenerativeModel("gemini-2.0-flash")
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+# JWT Configuration
+JWT_SECRET = os.environ['JWT_SECRET_KEY']
+JWT_ALGORITHM = os.environ['JWT_ALGORITHM']
+JWT_EXPIRATION = int(os.environ['JWT_EXPIRATION_HOURS'])
 
-
-# Define Models
-class StatusCheck(BaseModel):
+# Models
+class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    email: EmailStr
+    full_name: str
+    phone: Optional[str] = None
+    profile_picture: Optional[str] = None
+    target_exam: List[str] = []
+    school: Optional[str] = None
+    class_level: Optional[str] = None
+    google_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_login: Optional[datetime] = None
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class UserRegistration(BaseModel):
+    email: EmailStr
+    full_name: str
+    password: str
+    phone: Optional[str] = None
+    target_exam: List[str] = []
+    school: Optional[str] = None
+    class_level: Optional[str] = None
 
-# Add your routes to the router instead of directly to app
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class GoogleAuth(BaseModel):
+    token: str
+
+class ExamConfig(BaseModel):
+    exam_type: str  # JEE Main, NEET, EMCET Engineering, EMCET Medical
+    subjects: List[str]
+    question_count: int
+    duration: int  # in minutes
+    difficulty: str  # Easy, Medium, Hard, Mixed
+
+class Question(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    question: str
+    options: List[str]
+    correct_index: int
+    correct_answer: str
+    solution: str
+    difficulty: str
+    subject: str
+    topic: str
+    exam_type: str
+
+class Exam(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    exam_type: str
+    configuration: ExamConfig
+    questions: List[Question]
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    duration: int
+    status: str = "created"  # created, ongoing, completed, submitted
+    answers: Dict[str, Any] = {}
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ExamSubmission(BaseModel):
+    exam_id: str
+    answers: Dict[str, Any]
+
+class ExamResult(BaseModel):
+    exam_id: str
+    user_id: str
+    score: float
+    total_questions: int
+    correct_answers: int
+    percentage: float
+    time_taken: int
+    subject_wise_score: Dict[str, Any]
+    detailed_analysis: List[Dict[str, Any]]
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Utility Functions
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def create_jwt_token(user_id: str, email: str) -> str:
+    payload = {
+        "user_id": user_id,
+        "email": email,
+        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION),
+        "iat": datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def decode_jwt_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    payload = decode_jwt_token(credentials.credentials)
+    user = await db.users.find_one({"id": payload["user_id"]})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return User(**user)
+
+# AI Question Generation
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+async def generate_questions_with_gemini(exam_config: ExamConfig) -> List[Question]:
+    """Generate questions using Gemini AI with retry mechanism"""
+    
+    # Subject distribution based on exam type
+    subject_distribution = {
+        "JEE Main": {"Physics": 25, "Chemistry": 25, "Mathematics": 25},
+        "NEET": {"Physics": 45, "Chemistry": 45, "Biology": 90},
+        "EMCET Engineering": {"Physics": 40, "Chemistry": 40, "Mathematics": 80},
+        "EMCET Medical": {"Physics": 40, "Chemistry": 40, "Biology": 80}
+    }
+    
+    # Calculate questions per subject
+    total_questions = exam_config.question_count
+    if exam_config.exam_type in subject_distribution:
+        total_standard = sum(subject_distribution[exam_config.exam_type].values())
+        ratio = total_questions / total_standard
+        questions_per_subject = {
+            subject: max(1, int(count * ratio))
+            for subject, count in subject_distribution[exam_config.exam_type].items()
+            if subject in exam_config.subjects
+        }
+    else:
+        # Equal distribution for custom exams
+        questions_per_subject = {
+            subject: total_questions // len(exam_config.subjects)
+            for subject in exam_config.subjects
+        }
+    
+    all_questions = []
+    
+    for subject, count in questions_per_subject.items():
+        prompt = f"""
+        Generate {count} {exam_config.difficulty}-level MCQ questions for {subject} 
+        Exam Type: {exam_config.exam_type}
+        
+        Requirements:
+        - Each question must have exactly 4 options (A, B, C, D)
+        - Only one correct answer
+        - Include detailed solution explanation
+        - Questions should be unique and {exam_config.exam_type}-appropriate
+        - Difficulty should match {exam_config.difficulty} level
+        - Cover various topics within {subject}
+        
+        Output ONLY valid JSON in this exact format:
+        {{
+            "questions": [
+                {{
+                    "question": "Question text here",
+                    "options": ["Option A", "Option B", "Option C", "Option D"],
+                    "correct_index": 0,
+                    "correct_answer": "A",
+                    "solution": "Detailed solution explanation",
+                    "difficulty": "{exam_config.difficulty}",
+                    "subject": "{subject}",
+                    "topic": "Topic name",
+                    "exam_type": "{exam_config.exam_type}"
+                }}
+            ]
+        }}
+        """
+        
+        try:
+            response = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: model.generate_content(prompt)
+            )
+            
+            response_text = response.text.strip()
+            
+            # Clean JSON response
+            if response_text.startswith("```json"):
+                response_text = response_text[7:-3]
+            elif response_text.startswith("```"):
+                response_text = response_text[3:-3]
+            
+            parsed_response = json.loads(response_text)
+            
+            for q_data in parsed_response.get("questions", []):
+                question = Question(
+                    question=q_data["question"],
+                    options=q_data["options"],
+                    correct_index=q_data["correct_index"],
+                    correct_answer=q_data["correct_answer"],
+                    solution=q_data["solution"],
+                    difficulty=q_data["difficulty"],
+                    subject=q_data["subject"],
+                    topic=q_data.get("topic", "General"),
+                    exam_type=q_data["exam_type"]
+                )
+                all_questions.append(question)
+                
+        except Exception as e:
+            logger.error(f"Error generating questions for {subject}: {str(e)}")
+            # Fallback to basic questions if AI fails
+            fallback_question = Question(
+                question=f"Sample {subject} question for {exam_config.exam_type}",
+                options=["Option A", "Option B", "Option C", "Option D"],
+                correct_index=0,
+                correct_answer="A",
+                solution="This is a fallback question.",
+                difficulty=exam_config.difficulty,
+                subject=subject,
+                topic="General",
+                exam_type=exam_config.exam_type
+            )
+            all_questions.append(fallback_question)
+    
+    return all_questions
+
+# API Endpoints
+
+@api_router.post("/auth/register")
+async def register_user(user_data: UserRegistration):
+    """Register a new user"""
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": user_data.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Hash password
+    hashed_password = hash_password(user_data.password)
+    
+    # Create user
+    user = User(
+        email=user_data.email,
+        full_name=user_data.full_name,
+        phone=user_data.phone,
+        target_exam=user_data.target_exam,
+        school=user_data.school,
+        class_level=user_data.class_level
+    )
+    
+    user_dict = user.dict()
+    user_dict["password"] = hashed_password
+    
+    await db.users.insert_one(user_dict)
+    
+    # Generate JWT token
+    token = create_jwt_token(user.id, user.email)
+    
+    return {"message": "User registered successfully", "token": token, "user": user}
+
+@api_router.post("/auth/login")
+async def login_user(login_data: UserLogin):
+    """Login user with email and password"""
+    user = await db.users.find_one({"email": login_data.email})
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not verify_password(login_data.password, user["password"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Update last login
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"last_login": datetime.utcnow()}}
+    )
+    
+    # Generate JWT token
+    token = create_jwt_token(user["id"], user["email"])
+    
+    user_obj = User(**user)
+    return {"message": "Login successful", "token": token, "user": user_obj}
+
+@api_router.post("/auth/google")
+async def google_auth(google_data: GoogleAuth):
+    """Authenticate with Google OAuth"""
+    try:
+        # Verify Google token
+        id_info = id_token.verify_oauth2_token(
+            google_data.token, 
+            requests.Request(), 
+            os.environ['GOOGLE_CLIENT_ID']
+        )
+        
+        google_id = id_info['sub']
+        email = id_info['email']
+        full_name = id_info['name']
+        profile_picture = id_info.get('picture', '')
+        
+        # Check if user exists
+        user = await db.users.find_one({"email": email})
+        
+        if user:
+            # Update existing user
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {"last_login": datetime.utcnow(), "google_id": google_id}}
+            )
+            user_obj = User(**user)
+        else:
+            # Create new user
+            user_obj = User(
+                email=email,
+                full_name=full_name,
+                profile_picture=profile_picture,
+                google_id=google_id
+            )
+            await db.users.insert_one(user_obj.dict())
+        
+        # Generate JWT token
+        token = create_jwt_token(user_obj.id, user_obj.email)
+        
+        return {"message": "Google authentication successful", "token": token, "user": user_obj}
+        
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+@api_router.get("/auth/me")
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current user information"""
+    return current_user
+
+@api_router.post("/exams/create")
+async def create_exam(exam_config: ExamConfig, current_user: User = Depends(get_current_user)):
+    """Create a new exam with AI-generated questions"""
+    try:
+        # Generate questions using AI
+        questions = await generate_questions_with_gemini(exam_config)
+        
+        # Create exam
+        exam = Exam(
+            user_id=current_user.id,
+            exam_type=exam_config.exam_type,
+            configuration=exam_config,
+            questions=questions,
+            duration=exam_config.duration
+        )
+        
+        await db.exams.insert_one(exam.dict())
+        
+        return {"message": "Exam created successfully", "exam": exam}
+        
+    except Exception as e:
+        logger.error(f"Error creating exam: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create exam")
+
+@api_router.get("/exams/{exam_id}")
+async def get_exam(exam_id: str, current_user: User = Depends(get_current_user)):
+    """Get exam details"""
+    exam = await db.exams.find_one({"id": exam_id, "user_id": current_user.id})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    return Exam(**exam)
+
+@api_router.post("/exams/{exam_id}/start")
+async def start_exam(exam_id: str, current_user: User = Depends(get_current_user)):
+    """Start an exam"""
+    exam = await db.exams.find_one({"id": exam_id, "user_id": current_user.id})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    if exam["status"] != "created":
+        raise HTTPException(status_code=400, detail="Exam already started or completed")
+    
+    # Update exam status
+    await db.exams.update_one(
+        {"id": exam_id},
+        {"$set": {"status": "ongoing", "start_time": datetime.utcnow()}}
+    )
+    
+    return {"message": "Exam started successfully"}
+
+@api_router.post("/exams/{exam_id}/submit")
+async def submit_exam(exam_id: str, submission: ExamSubmission, current_user: User = Depends(get_current_user)):
+    """Submit exam answers"""
+    exam = await db.exams.find_one({"id": exam_id, "user_id": current_user.id})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    if exam["status"] != "ongoing":
+        raise HTTPException(status_code=400, detail="Exam not in progress")
+    
+    # Calculate results
+    exam_obj = Exam(**exam)
+    correct_answers = 0
+    total_questions = len(exam_obj.questions)
+    subject_wise_score = {}
+    detailed_analysis = []
+    
+    for i, question in enumerate(exam_obj.questions):
+        question_id = str(i)
+        user_answer = submission.answers.get(question_id)
+        is_correct = user_answer == question.correct_index if user_answer is not None else False
+        
+        if is_correct:
+            correct_answers += 1
+        
+        # Subject-wise scoring
+        if question.subject not in subject_wise_score:
+            subject_wise_score[question.subject] = {"correct": 0, "total": 0}
+        subject_wise_score[question.subject]["total"] += 1
+        if is_correct:
+            subject_wise_score[question.subject]["correct"] += 1
+        
+        # Detailed analysis
+        detailed_analysis.append({
+            "question_id": question_id,
+            "question": question.question,
+            "options": question.options,
+            "correct_answer": question.correct_index,
+            "user_answer": user_answer,
+            "is_correct": is_correct,
+            "solution": question.solution,
+            "subject": question.subject,
+            "topic": question.topic
+        })
+    
+    # Calculate percentage and time taken
+    percentage = (correct_answers / total_questions) * 100
+    time_taken = int((datetime.utcnow() - exam_obj.start_time).total_seconds() / 60) if exam_obj.start_time else 0
+    
+    # Create result
+    result = ExamResult(
+        exam_id=exam_id,
+        user_id=current_user.id,
+        score=correct_answers,
+        total_questions=total_questions,
+        correct_answers=correct_answers,
+        percentage=percentage,
+        time_taken=time_taken,
+        subject_wise_score=subject_wise_score,
+        detailed_analysis=detailed_analysis
+    )
+    
+    # Update exam status
+    await db.exams.update_one(
+        {"id": exam_id},
+        {"$set": {
+            "status": "completed",
+            "end_time": datetime.utcnow(),
+            "answers": submission.answers
+        }}
+    )
+    
+    # Save result
+    await db.results.insert_one(result.dict())
+    
+    return {"message": "Exam submitted successfully", "result": result}
+
+@api_router.get("/exams/{exam_id}/result")
+async def get_exam_result(exam_id: str, current_user: User = Depends(get_current_user)):
+    """Get exam result"""
+    result = await db.results.find_one({"exam_id": exam_id, "user_id": current_user.id})
+    if not result:
+        raise HTTPException(status_code=404, detail="Result not found")
+    
+    return ExamResult(**result)
+
+@api_router.get("/dashboard")
+async def get_dashboard(current_user: User = Depends(get_current_user)):
+    """Get user dashboard data"""
+    # Get user's exams
+    exams = await db.exams.find({"user_id": current_user.id}).to_list(length=100)
+    
+    # Get user's results
+    results = await db.results.find({"user_id": current_user.id}).to_list(length=100)
+    
+    # Calculate statistics
+    total_exams = len(exams)
+    completed_exams = len([e for e in exams if e["status"] == "completed"])
+    
+    if results:
+        avg_score = sum(r["percentage"] for r in results) / len(results)
+        best_score = max(r["percentage"] for r in results)
+    else:
+        avg_score = 0
+        best_score = 0
+    
+    return {
+        "user": current_user,
+        "stats": {
+            "total_exams": total_exams,
+            "completed_exams": completed_exams,
+            "average_score": round(avg_score, 2),
+            "best_score": round(best_score, 2)
+        },
+        "recent_exams": exams[-5:] if exams else [],
+        "recent_results": results[-5:] if results else []
+    }
+
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "JEE/NEET/EMCET Exam Portal API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
-
-# Include the router in the main app
+# Include router
 app.include_router(api_router)
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -63,13 +556,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
