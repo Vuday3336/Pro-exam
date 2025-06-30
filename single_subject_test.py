@@ -24,9 +24,9 @@ TEST_USER = {
     "password": "TestPassword123",
 }
 
-def test_single_subject_exam_creation():
+def test_single_subject_exam_creation(exam_type="NEET", subject="Biology"):
     """Test creating an exam with a single subject to check question quality"""
-    print("Testing Single Subject Exam Creation...")
+    print(f"Testing Single Subject Exam Creation for {exam_type} - {subject}...")
     try:
         # Login to get a token
         login_data = {
@@ -42,17 +42,17 @@ def test_single_subject_exam_creation():
         # Get the token from the login response
         token = login_response.json()["token"]
         
-        # Create an exam with just Physics for NEET
+        # Create an exam with just the specified subject
         exam_config = {
-            "exam_type": "NEET",
-            "subjects": ["Physics"],
+            "exam_type": exam_type,
+            "subjects": [subject],
             "question_count": 3,  # Small number for quick testing
             "duration": 30,  # 30 minutes
             "difficulty": "Medium"
         }
         
         headers = {"Authorization": f"Bearer {token}"}
-        print("Sending exam creation request for Physics only...")
+        print(f"Sending exam creation request for {subject} only...")
         response = requests.post(f"{API_URL}/exams/create", json=exam_config, headers=headers)
         print(f"Status Code: {response.status_code}")
         
@@ -63,6 +63,7 @@ def test_single_subject_exam_creation():
             print(f"Received {len(questions)} questions")
             
             # Print each question in detail
+            sample_questions = 0
             for i, question in enumerate(questions):
                 print(f"\nQuestion {i+1}: {question['question']}")
                 print("Options:")
@@ -75,6 +76,14 @@ def test_single_subject_exam_creation():
                 # Check if this is a sample/template question
                 if "sample" in question['question'].lower() or "template" in question['question'].lower():
                     print("⚠️ This appears to be a sample/template question")
+                    sample_questions += 1
+            
+            if sample_questions == len(questions):
+                print("\n❌ ALL questions are sample/template questions")
+            elif sample_questions > 0:
+                print(f"\n⚠️ {sample_questions} out of {len(questions)} are sample/template questions")
+            else:
+                print("\n✅ No sample/template questions found")
         else:
             print(f"Response: {response_json}")
         
@@ -84,4 +93,13 @@ def test_single_subject_exam_creation():
         return False
 
 if __name__ == "__main__":
-    test_single_subject_exam_creation()
+    # Test with Biology for NEET
+    test_single_subject_exam_creation("NEET", "Biology")
+    print("\n" + "="*80 + "\n")
+    
+    # Test with Mathematics for JEE Main
+    test_single_subject_exam_creation("JEE Main", "Mathematics")
+    print("\n" + "="*80 + "\n")
+    
+    # Test with Chemistry for EAMCET Engineering
+    test_single_subject_exam_creation("EAMCET Engineering", "Chemistry")
